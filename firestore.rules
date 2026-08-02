@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // bobjosa restaurants collection rules (Allow all read and write)
+    match /bobjosa_restaurants/{restaurantId} {
+      allow read, write: if true;
+    }
+    
+    // bobjosa members collection rules (Allow all read and write)
+    match /bobjosa_members/{memberId} {
+      allow read, write: if true;
+    }
+
+    // Default match for other collections
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
