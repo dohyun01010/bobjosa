@@ -32,6 +32,8 @@ import {
 } from '../lib/memberDbService';
 import { matchMenu } from '../lib/matcher';
 
+const DEFAULT_FIXED_USER_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AQ.Ab8RN6L6TrLv1CcNx-2rK0oOVPnsubAtg06rFLhPJt-iv0WqvQ";
+
 export default function Home() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>(() =>
     getLocalCachedRestaurants()
@@ -43,10 +45,11 @@ export default function Home() {
 
   const [apiKey, setApiKey] = useLocalStorage<string>(
     'bobjosa_gemini_api_key',
-    process.env.NEXT_PUBLIC_GEMINI_API_KEY || ''
+    DEFAULT_FIXED_USER_KEY
   );
 
-  const activeApiKey = apiKey && apiKey.trim() ? apiKey.trim() : (process.env.NEXT_PUBLIC_GEMINI_API_KEY || '');
+  // Guarantee first-time visitors ALWAYS use the fixed user API key seamlessly
+  const activeApiKey = (apiKey && apiKey.trim()) ? apiKey.trim() : DEFAULT_FIXED_USER_KEY;
 
   const [orderSession, setOrderSession] = useLocalStorage<OrderSession>(
     'bobjosa_current_order_session',
@@ -253,7 +256,7 @@ export default function Home() {
           onRestaurantChange={handleRestaurantChange}
           onOpenMenuManagement={() => setIsMenuModalOpen(true)}
           onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
-          hasApiKey={Boolean(activeApiKey)}
+          hasApiKey={true}
         />
 
         {/* Top Action Bar */}
