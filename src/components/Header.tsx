@@ -39,7 +39,6 @@ export default function Header({
               <h1 className="text-lg font-bold text-text-primary tracking-tight">밥조사</h1>
               <span className="badge badge-success text-[10px]">DB 영구 동기화 활성</span>
             </div>
-            <p className="text-xs text-text-muted">AI 기반 카카오톡 식사 주문 자동 취합</p>
           </div>
         </div>
 

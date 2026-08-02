@@ -63,7 +63,7 @@ export default function UnifiedOrderCard({
       lines.push(u.userName.trim());
 
       for (const item of u.items) {
-        if (item.status === 'uncertain') continue; // Don't output unconfirmed uncertain chatter into raw text
+        if (item.status === 'uncertain') continue;
         const name = item.matchedMenuName || item.rawText;
         if (name) {
           lines.push(`${name} ${item.quantity}`);
@@ -149,7 +149,6 @@ export default function UnifiedOrderCard({
     onRawTextChange(formatCleanedRawChatText(updated));
   };
 
-  // Human-in-the-loop decision: Accept uncertain item as real menu!
   const handleConfirmUncertainItem = (userId: string, itemId: string) => {
     const updated = userOrders.map(u => {
       if (u.id !== userId) return u;
@@ -169,7 +168,6 @@ export default function UnifiedOrderCard({
     onRawTextChange(formatCleanedRawChatText(updated));
   };
 
-  // Human-in-the-loop decision: Reject uncertain item as chatter!
   const handleRejectUncertainItem = (userId: string, itemId: string) => {
     const updated = userOrders.map(u => {
       if (u.id !== userId) return u;
@@ -195,11 +193,8 @@ export default function UnifiedOrderCard({
       <div className="space-y-3 w-full">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <label className="text-sm font-bold text-text-primary flex items-center gap-2">
-            <span>💬</span> 카카오톡 주문 대화 전문 붙여넣기
+            <span>💬</span> 카카오톡 주문 대화
           </label>
-          <span className="text-[11px] text-accent-primary font-semibold flex items-center gap-1">
-            <span>🤝</span> AI 확신 부족 단어는 사람 개입 질문 카드 자동 노출
-          </span>
         </div>
 
         <textarea
@@ -221,11 +216,11 @@ export default function UnifiedOrderCard({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              AI 이중 재검증 분석 실행 중...
+              AI 분석 실행 중...
             </>
           ) : (
             <>
-              <span>🤖</span> AI 분석 실행 (사람 개입 질문 시스템 가동)
+              <span>🤖</span> AI 분석 실행
             </>
           )}
         </button>
