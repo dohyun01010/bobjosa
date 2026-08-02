@@ -38,30 +38,22 @@ export default function OrderSummary({
       {totalAggregated.length > 0 && (
         <button
           onClick={handleCopy}
-          className={`btn-primary w-full py-3.5 text-base font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all rounded-xl block ${
-            copied ? 'bg-emerald-600 border-emerald-700' : ''
+          className={`btn-primary w-full py-3 text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all rounded-xl block ${
+            copied ? 'bg-emerald-600' : ''
           }`}
         >
-          {copied ? (
-            <>
-              <span>✅</span> 복사 완료!
-            </>
-          ) : (
-            <>
-              <span>📋</span> 복사 하기
-            </>
-          )}
+          {copied ? '복사 완료' : '복사 하기'}
         </button>
       )}
 
       {/* 2. Tabs */}
-      <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
-        <div className="flex p-1 rounded-xl bg-bg-input/60 border border-border-primary/50 text-xs w-full">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex p-1 rounded-xl bg-bg-input/60 border border-border-primary/40 text-xs w-full">
           <button
             onClick={() => setActiveTab('total')}
-            className={`flex-1 py-1.5 rounded-lg font-bold transition-all cursor-pointer text-center ${
+            className={`flex-1 py-1.5 rounded-lg font-medium transition-all cursor-pointer text-center text-xs ${
               activeTab === 'total'
-                ? 'bg-bg-card text-accent-primary shadow-sm'
+                ? 'bg-bg-card text-text-primary shadow-sm font-bold'
                 : 'text-text-muted hover:text-text-primary'
             }`}
           >
@@ -69,9 +61,9 @@ export default function OrderSummary({
           </button>
           <button
             onClick={() => setActiveTab('department')}
-            className={`flex-1 py-1.5 rounded-lg font-bold transition-all cursor-pointer text-center ${
+            className={`flex-1 py-1.5 rounded-lg font-medium transition-all cursor-pointer text-center text-xs ${
               activeTab === 'department'
-                ? 'bg-bg-card text-accent-primary shadow-sm'
+                ? 'bg-bg-card text-text-primary shadow-sm font-bold'
                 : 'text-text-muted hover:text-text-primary'
             }`}
           >
@@ -82,36 +74,35 @@ export default function OrderSummary({
 
       {/* 3. Main Content Area */}
       {totalAggregated.length === 0 ? (
-        <div className="py-12 text-center text-text-muted space-y-2">
-          <span className="text-3xl block">📋</span>
-          <p className="text-xs">주문 데이터가 없습니다</p>
-          <p className="text-[11px]">왼쪽 입력창에 카카오톡 대화를 붙여넣고 분석하세요</p>
+        <div className="py-12 text-center text-text-muted space-y-1">
+          <p className="text-xs font-medium">주문 데이터가 없습니다</p>
+          <p className="text-[11px]">왼쪽 입력창에 대화를 복사하고 분석하세요</p>
         </div>
       ) : activeTab === 'total' ? (
         /* Total Aggregation Tab */
-        <div className="space-y-4">
-          <div className="space-y-2">
+        <div className="space-y-3">
+          <div className="space-y-1.5">
             {totalAggregated.map((item, idx) => (
               <div
                 key={idx}
-                className="flex items-center justify-between p-3 rounded-xl bg-bg-card border border-border-primary text-xs"
+                className="flex items-center justify-between p-3 rounded-xl bg-bg-card border border-border-primary/50 text-xs"
               >
-                <span className="font-bold text-text-primary">{item.menuName}</span>
-                <span className="badge badge-primary text-xs px-2.5 py-1 tabular-nums font-bold">
+                <span className="font-semibold text-text-primary">{item.menuName}</span>
+                <span className="badge badge-primary text-xs px-2.5 py-0.5 tabular-nums font-bold">
                   {item.quantity}개
                 </span>
               </div>
             ))}
           </div>
 
-          <div className="pt-3 border-t border-border-primary/50 flex justify-between items-center text-sm font-bold text-text-primary">
+          <div className="pt-3 border-t border-border-primary/50 flex justify-between items-center text-xs font-bold text-text-primary">
             <span>총 수량</span>
-            <span className="text-accent-primary text-base tabular-nums">{grandTotalCount}개</span>
+            <span className="text-accent-primary text-sm tabular-nums">{grandTotalCount}개</span>
           </div>
         </div>
       ) : (
         /* Department Aggregation Tab */
-        <div className="space-y-4">
+        <div className="space-y-3">
           {DEPARTMENTS.map(dept => {
             const summary = aggregateDepartmentByName(dept as DepartmentName, userOrders);
             if (summary.items.length === 0) return null;
@@ -119,18 +110,18 @@ export default function OrderSummary({
             return (
               <div
                 key={dept}
-                className="p-4 rounded-xl bg-bg-card border border-border-primary space-y-2 text-xs"
+                className="p-3.5 rounded-xl bg-bg-card border border-border-primary/50 space-y-2 text-xs"
               >
                 <div className="flex items-center justify-between border-b border-border-primary/40 pb-2">
-                  <span className="font-bold text-text-primary flex items-center gap-1.5">
-                    <span>▸</span> {dept}
+                  <span className="font-bold text-text-primary">
+                    {dept}
                   </span>
-                  <span className="badge badge-success text-[11px] font-bold tabular-nums">
+                  <span className="badge badge-success text-[10px] font-bold tabular-nums">
                     {summary.totalCount}개
                   </span>
                 </div>
 
-                <div className="space-y-1.5 pt-1">
+                <div className="space-y-1 pt-1">
                   {summary.items.map((item, idx) => (
                     <div key={idx} className="flex justify-between items-center text-[11px]">
                       <span className="text-text-secondary">{item.menuName}</span>
