@@ -1,13 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MenuItem, UserOrder, ParsedOrderItem, UnregisteredItem, AiParseResult } from '../types';
-import { parseChatWithAi } from '../lib/aiParser';
-import { parseChatTextFallback } from '../lib/parser';
-import { groupOrdersByDepartment } from '../lib/aggregator';
+import {
+  UserOrder,
+  UnregisteredItem,
+  AiParseResult,
+  MenuItem,
+} from '../types';
 import { DepartmentName } from '../constants';
-import UnregisteredItemsCard from './UnregisteredItemsCard';
+import { parseChatWithAi } from '../lib/aiParser';
 import UnrecognizedUsersCard from './UnrecognizedUsersCard';
+import UnregisteredItemsCard from './UnregisteredItemsCard';
 
 interface UnifiedOrderCardProps {
   rawChatText: string;
@@ -49,350 +52,189 @@ export default function UnifiedOrderCard({
   onOpenApiKeyModal,
 }: UnifiedOrderCardProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const fillSampleText = () => {
-    const sample = `오후 8:21 조예성 망고스파클링1 만두1 버팔로윙1 마마세트1
-오후 8:22 김현수 콜팝 2 망고스파클링1 만두1 해시브라운1
-오후 8:28 윤준영 메카 마마세트 1개 추가해줘
-오후 8:28 김도현 네
-오후 8:29 정지훈 마마세트 2
-오후 8:30 강경완 망고 스파클링 1 너겟 1 치즈스틱 2 버팔로봉1 콜팝1 베이컨 단 1
-오후 8:31 박승제 마마치킨버거 세트 1개 추가해줘
-오후 8:32 테스트회원 마마세트 1`;
-    onRawTextChange(sample);
-  };
+  const handleRunAiAnalysis = async () => {
+    if (!rawChatText.trim()) {
+      alert('카카오톡 주문 대화 내용을 입력해 주세요.');
+      return;
+    }
 
-  const handleAnalyze = async () => {
-    if (!restaurantSelected || !rawChatText.trim()) return;
     setIsAnalyzing(true);
-    setErrorMessage(null);
-
     try {
-      if (apiKey && apiKey.trim()) {
-        const aiResult = await parseChatWithAi(rawChatText, menuItems, apiKey, memberMap);
-        onAnalyzeComplete(aiResult);
-      } else {
-        const localUserOrders = parseChatTextFallback(rawChatText, menuItems, memberMap);
-        onAnalyzeComplete({
-          userOrders: localUserOrders,
-          unregisteredItems: [],
-        });
-      }
-    } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err.message || '분석 중 오류가 발생했습니다. 로컬 파서로 시도합니다.');
-      try {
-        const localUserOrders = parseChatTextFallback(rawChatText, menuItems, memberMap);
-        onAnalyzeComplete({
-          userOrders: localUserOrders,
-          unregisteredItems: [],
-        });
-      } catch (localErr) {
-        console.error(localErr);
-      }
+      const result = await parseChatWithAi(
+        rawChatText,
+        menuItems,
+        apiKey,
+        memberMap
+      );
+      onAnalyzeComplete(result);
+    } catch (e: any) {
+      console.error('AI Parse error:', e);
+      alert(`분석 오류가 발생했습니다: ${e?.message || e}`);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handleItemUpdate = (
-    userOrderId: string,
-    itemId: string,
-    menuId: string,
-    menuName: string
-  ) => {
+  const fillSampleChat = () => {
+    const sample = `오전 9:23 조예성 육짬뽕밥1(포장) 짜장면1
+오전 9:31 조윤성 짜장면 1
+오전 9:34 박범주 짜장면 1 해물짬뽕 1
+오전 10:40 이시형 해물짬뽕 1 짜장밥 1`;
+    onRawTextChange(sample);
+  };
+
+  const handleEditItemQuantity = (userId: string, itemId: string, delta: number) => {
     const updated = userOrders.map(u => {
-      if (u.id !== userOrderId) return u;
+      if (u.id !== userId) return u;
       return {
         ...u,
-        items: u.items.map(item =>
-          item.id === itemId
-            ? {
-                ...item,
-                matchedMenuId: menuId,
-                matchedMenuName: menuName,
-                status: 'confirmed' as const,
-              }
-            : item
-        ),
+        items: u.items
+          .map(item => {
+            if (item.id !== itemId) return item;
+            const newQty = Math.max(0, item.quantity + delta);
+            return { ...item, quantity: newQty };
+          })
+          .filter(item => item.quantity > 0),
       };
-    });
+    }).filter(u => u.items.length > 0);
+
     onUserOrderUpdate(updated);
   };
 
-  const handleItemDelete = (userOrderId: string, itemId: string) => {
-    const updated = userOrders
-      .map(u => {
-        if (u.id !== userOrderId) return u;
-        return {
-          ...u,
-          items: u.items.filter(item => item.id !== itemId),
-        };
-      })
-      .filter(u => u.items.length > 0);
+  const handleDeleteUserOrder = (userId: string) => {
+    const updated = userOrders.filter(u => u.id !== userId);
     onUserOrderUpdate(updated);
   };
-
-  const handleQuantityChange = (
-    userOrderId: string,
-    itemId: string,
-    quantity: number
-  ) => {
-    const updated = userOrders.map(u => {
-      if (u.id !== userOrderId) return u;
-      return {
-        ...u,
-        items: u.items.map(item =>
-          item.id === itemId ? { ...item, quantity } : item
-        ),
-      };
-    });
-    onUserOrderUpdate(updated);
-  };
-
-  const departmentGroups = groupOrdersByDepartment(userOrders);
 
   return (
-    <div className="space-y-6">
-      {/* Input Card */}
-      <div className="glass-card p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-text-primary flex items-center gap-2">
+    <div className="glass-card p-6 space-y-6 w-full">
+      {/* 1. Input Area */}
+      <div className="space-y-3 w-full">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <label className="text-sm font-bold text-text-primary flex items-center gap-2">
             <span>💬</span> 카카오톡 주문 대화 전문 붙여넣기
-          </h2>
+          </label>
           <button
-            onClick={fillSampleText}
-            className="text-xs text-text-accent hover:underline flex items-center gap-1"
+            type="button"
+            onClick={fillSampleChat}
+            className="text-xs text-accent-primary hover:underline cursor-pointer flex items-center gap-1 font-medium"
           >
-            <span>✨</span> 예시 데이터 채우기 (신규 인물 예시 포함)
+            ✨ 예시 데이터 채우기 (신규 인물 예시 포함)
           </button>
         </div>
 
         <textarea
           value={rawChatText}
           onChange={e => onRawTextChange(e.target.value)}
-          placeholder={
-            restaurantSelected
-              ? `카카오톡 전체 대화 텍스트를 그대로 붙여넣으세요...\n\n[예시]\n오후 8:21 조예성 망고스파클링1 만두1\n오후 8:28 윤준영 메카 마마세트 1개 추가해줘\n오후 8:31 박승제 마마치킨버거 세트 1개`
-              : '먼저 상단에서 식당을 선택하세요'
-          }
-          disabled={!restaurantSelected}
-          className="textarea-order min-h-[160px] font-mono text-xs disabled:opacity-50"
+          placeholder="카카오톡 대화방의 주문 메시지 전체를 복사해서 붙여넣으세요...&#10;예시:&#10;오전 9:23 조예성 육짬뽕밥1(포장) 짜장면1&#10;오전 9:31 조윤성 짜장면 1"
+          className="input-field w-full min-h-[200px] p-4 text-sm font-mono leading-relaxed resize-y block"
+          style={{ width: '100%' }}
         />
 
-        {errorMessage && (
-          <div className="text-xs p-2.5 rounded-lg bg-accent-warning/10 border border-accent-warning/30 text-accent-warning flex items-center justify-between">
-            <span>⚠️ {errorMessage}</span>
-            {!apiKey && (
-              <button
-                onClick={onOpenApiKeyModal}
-                className="underline font-semibold ml-2 hover:text-text-primary"
-              >
-                API 키 설정하기
-              </button>
-            )}
-          </div>
-        )}
-
-        <div className="flex items-center gap-3 pt-1">
-          <button
-            onClick={handleAnalyze}
-            disabled={!restaurantSelected || !rawChatText.trim() || isAnalyzing}
-            className="btn-primary flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-40 disabled:transform-none disabled:shadow-none"
-          >
-            {isAnalyzing ? (
-              <>
-                <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                AI 분석 및 직종별 분류 중...
-              </>
-            ) : (
-              <>
-                <span>🤖</span>
-                {apiKey ? 'AI 분석 실행' : '주문 분석 실행 (로컬 파서)'}
-              </>
-            )}
-          </button>
-        </div>
+        <button
+          onClick={handleRunAiAnalysis}
+          disabled={isAnalyzing}
+          className="btn-primary w-full py-3.5 text-base flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+        >
+          {isAnalyzing ? (
+            <>
+              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              AI 파싱 분석 진행 중...
+            </>
+          ) : (
+            <>
+              <span>🤖</span> AI 분석 실행
+            </>
+          )}
+        </button>
       </div>
 
-      {/* Unrecognized Users Selection Card */}
-      <UnrecognizedUsersCard
-        unrecognizedUsers={unrecognizedUsers}
-        onSelectDepartment={onSelectUserDepartment}
-        onDismiss={onDismissUnrecognizedUser}
-      />
+      {/* 2. Dynamic Notifications */}
+      {unrecognizedUsers.length > 0 && (
+        <UnrecognizedUsersCard
+          unrecognizedUsers={unrecognizedUsers}
+          onSelectDepartment={onSelectUserDepartment}
+          onDismiss={onDismissUnrecognizedUser}
+        />
+      )}
 
-      {/* AI Inferred Unregistered Items Card */}
-      <UnregisteredItemsCard
-        unregisteredItems={unregisteredItems}
-        existingMenuItems={menuItems}
-        onAddToDb={onAddMenuItemToDb}
-        onAddAsAlias={onAddAliasToDb}
-        onDismiss={onDismissUnregisteredItem}
-      />
+      {unregisteredItems.length > 0 && (
+        <UnregisteredItemsCard
+          unregisteredItems={unregisteredItems}
+          existingMenuItems={menuItems}
+          onAddToDb={onAddMenuItemToDb}
+          onAddAsAlias={onAddAliasToDb}
+          onDismiss={onDismissUnregisteredItem}
+        />
+      )}
 
-      {/* Analysis Results Grouped by 5 Departments */}
+      {/* 3. Analysis Results List */}
       {userOrders.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-              직종별 주문 분류 (총 {userOrders.length}명)
+        <div className="pt-4 border-t border-border-primary space-y-4 w-full">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
+              <span>👥</span> 사람별 주문 파싱 결과 ({userOrders.length}명)
             </h3>
+            <span className="text-xs text-text-muted">직종 자동 배정 완료</span>
           </div>
 
-          {departmentGroups.map(group => {
-            if (group.userOrders.length === 0) return null;
-
-            return (
-              <div key={group.departmentName} className="glass-card p-4 space-y-3">
-                {/* Department Header */}
-                <div className="flex items-center justify-between pb-2 border-b border-border-primary/60">
+          <div className="space-y-3 w-full">
+            {userOrders.map(user => (
+              <div
+                key={user.id}
+                className="p-4 rounded-xl bg-bg-input/60 border border-border-primary hover:border-border-focus transition-all w-full"
+              >
+                <div className="flex items-center justify-between mb-2 pb-2 border-b border-border-primary/50">
                   <div className="flex items-center gap-2">
-                    <span className="text-base">🏢</span>
-                    <h4 className="text-sm font-bold text-text-primary">
-                      {group.departmentName}
-                    </h4>
-                    <span className="badge badge-success text-[11px]">
-                      {group.userOrders.length}명
-                    </span>
+                    <span className="font-bold text-text-primary text-sm">{user.userName}</span>
+                    <span className="badge badge-success text-[11px]">{user.departmentName}</span>
                   </div>
-                  <span className="text-xs font-semibold text-accent-primary">
-                    합계 {group.totalCount}개
-                  </span>
+
+                  <button
+                    onClick={() => handleDeleteUserOrder(user.id)}
+                    className="text-text-muted hover:text-accent-error text-xs p-1 rounded hover:bg-accent-error/10 cursor-pointer"
+                    title="주문 삭제"
+                  >
+                    삭제 ✕
+                  </button>
                 </div>
 
-                {/* Orders under this department */}
-                <div className="space-y-3 pl-1">
-                  {group.userOrders.map(uOrder => (
+                <div className="space-y-1.5 w-full">
+                  {user.items.map(item => (
                     <div
-                      key={uOrder.id}
-                      className="p-3 rounded-lg bg-bg-input/60 border border-border-primary/40 space-y-2"
+                      key={item.id}
+                      className="flex items-center justify-between text-xs py-1 px-2.5 rounded bg-bg-card border border-border-primary/40 w-full"
                     >
-                      <div className="flex items-center justify-between text-xs font-medium border-b border-border-primary/30 pb-1">
-                        <span className="text-text-primary font-bold">👤 {uOrder.userName}</span>
-                        {uOrder.time && <span className="text-text-muted">({uOrder.time})</span>}
-                      </div>
-
-                      <div className="space-y-1.5 pt-0.5">
-                        {uOrder.items.map(item => (
-                          <OrderItemRow
-                            key={item.id}
-                            item={item}
-                            menuItems={menuItems}
-                            onUpdate={(itemId, menuId, menuName) =>
-                              handleItemUpdate(uOrder.id, itemId, menuId, menuName)
-                            }
-                            onDelete={itemId => handleItemDelete(uOrder.id, itemId)}
-                            onQuantityChange={(itemId, qty) =>
-                              handleQuantityChange(uOrder.id, itemId, qty)
-                            }
-                          />
-                        ))}
+                      <span className="text-text-primary font-medium">{item.matchedMenuName || item.rawText}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditItemQuantity(user.id, item.id, -1)}
+                          className="w-5 h-5 rounded bg-bg-input border border-border-primary flex items-center justify-center font-bold text-text-secondary hover:bg-border-primary cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <span className="font-bold text-accent-primary tabular-nums min-w-[16px] text-center">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => handleEditItemQuantity(user.id, item.id, +1)}
+                          className="w-5 h-5 rounded bg-bg-input border border-border-primary flex items-center justify-center font-bold text-text-secondary hover:bg-border-primary cursor-pointer"
+                        >
+                          +
+                        </button>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function OrderItemRow({
-  item,
-  menuItems,
-  onUpdate,
-  onDelete,
-  onQuantityChange,
-}: {
-  item: ParsedOrderItem;
-  menuItems: MenuItem[];
-  onUpdate: (itemId: string, menuId: string, menuName: string) => void;
-  onDelete: (itemId: string) => void;
-  onQuantityChange: (itemId: string, quantity: number) => void;
-}) {
-  const statusConfig = {
-    confirmed: {
-      bg: 'bg-accent-success/5',
-      border: 'border-accent-success/20',
-      icon: '✅',
-    },
-    ambiguous: {
-      bg: 'bg-accent-warning/5',
-      border: 'border-accent-warning/20',
-      icon: '⚠️',
-    },
-    error: {
-      bg: 'bg-accent-error/5',
-      border: 'border-accent-error/20',
-      icon: '❌',
-    },
-  };
-
-  const config = statusConfig[item.status];
-
-  return (
-    <div className={`flex items-start gap-2 px-2.5 py-1.5 rounded-md border ${config.bg} ${config.border} transition-colors duration-150 text-xs`}>
-      <span className="mt-0.5 shrink-0">{config.icon}</span>
-
-      <div className="flex-1 min-w-0">
-        {item.status === 'confirmed' && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-text-primary">{item.matchedMenuName}</span>
-            {item.rawText !== item.matchedMenuName && (
-              <span className="text-[11px] text-text-muted">← &ldquo;{item.rawText}&rdquo;</span>
-            )}
-          </div>
-        )}
-
-        {item.status === 'ambiguous' && (
-          <div>
-            <p className="text-[11px] text-accent-warning font-medium mb-1">
-              &ldquo;{item.rawText}&rdquo; — 확인 필요 (후보를 선택하세요)
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {item.candidates?.map(c => (
-                <button
-                  key={c.menuId}
-                  onClick={() => onUpdate(item.id, c.menuId, c.menuName)}
-                  className="text-[11px] px-2 py-0.5 rounded bg-bg-card border border-border-primary hover:border-accent-primary hover:text-accent-primary"
-                >
-                  {c.menuName}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {item.status === 'error' && (
-          <p className="text-[11px] text-accent-error">
-            &ldquo;{item.rawText}&rdquo; — 미인식 (DB 등록 영역에서 추가 가능)
-          </p>
-        )}
-      </div>
-
-      <div className="flex items-center gap-1 shrink-0">
-        <input
-          type="number"
-          value={item.quantity}
-          onChange={e => onQuantityChange(item.id, Math.max(1, parseInt(e.target.value) || 1))}
-          className="w-11 h-6 text-center text-xs bg-bg-input border border-border-primary rounded text-text-primary focus:outline-none focus:border-accent-primary"
-          min={1}
-        />
-        <button onClick={() => onDelete(item.id)} className="btn-icon text-text-muted hover:text-accent-error">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
     </div>
   );
 }
