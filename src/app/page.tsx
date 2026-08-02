@@ -48,7 +48,6 @@ export default function Home() {
     DEFAULT_FIXED_USER_KEY
   );
 
-  // Guarantee first-time visitors ALWAYS use the fixed user API key seamlessly
   const activeApiKey = (apiKey && apiKey.trim()) ? apiKey.trim() : DEFAULT_FIXED_USER_KEY;
 
   const [orderSession, setOrderSession] = useLocalStorage<OrderSession>(

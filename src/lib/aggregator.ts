@@ -1,5 +1,5 @@
 import { UserOrder, AggregatedItem, DepartmentGroupOrder } from '../types';
-import { DEPARTMENTS } from '../constants';
+import { DEPARTMENTS, DepartmentName } from '../constants';
 
 /**
  * Group user orders by 5 departments.
@@ -35,6 +35,24 @@ export function groupOrdersByDepartment(userOrders: UserOrder[]): DepartmentGrou
       totalCount,
     };
   });
+}
+
+/**
+ * Aggregate confirmed items for a specific department.
+ */
+export function aggregateDepartmentByName(
+  targetDept: DepartmentName,
+  userOrders: UserOrder[]
+): { departmentName: string; items: AggregatedItem[]; totalCount: number } {
+  const filteredOrders = userOrders.filter(u => u.departmentName === targetDept);
+  const items = aggregateTotal(filteredOrders);
+  const totalCount = items.reduce((sum, i) => sum + i.quantity, 0);
+
+  return {
+    departmentName: targetDept,
+    items,
+    totalCount,
+  };
 }
 
 /**

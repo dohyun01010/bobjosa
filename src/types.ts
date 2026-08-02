@@ -15,63 +15,48 @@ export interface Restaurant {
 // 파싱된 개별 주문 항목
 export interface ParsedOrderItem {
   id: string;
-  rawText: string;               // 원본 텍스트 (예: "망고스파클링1", "마마세트 1개 추가해줘")
-  matchedMenuId: string | null;  // 매칭된 메뉴 ID
+  rawText: string;
+  matchedMenuId: string | null;
   matchedMenuName: string | null;
   quantity: number;
-  status: 'confirmed' | 'ambiguous' | 'error';
+  status: 'confirmed' | 'ambiguous' | 'uncertain' | 'error';
   candidates?: { menuId: string; menuName: string; similarity: number }[];
 }
 
-// AI 추천 기존 메뉴 연동 후보
-export interface ExistingMatchCandidate {
-  menuId: string;
-  menuName: string;
-  similarity?: number;
-}
-
-// AI가 유추한 DB 미등록 메뉴 항목
-export interface UnregisteredItem {
-  id: string;
-  userName: string;              // 주문한 사람 (예: "윤준영")
-  departmentName?: string;       // 속한 직종 (예: "메카트로닉스")
-  rawText: string;               // 원본 텍스트 ("마마치킨버거 세트 1개")
-  suggestedName: string;         // AI가 유추한 메뉴명 ("마마치킨버거(세트)")
-  suggestedAliases: string[];    // AI가 유추한 별칭 목록
-  suggestedExistingMatches?: ExistingMatchCandidate[]; // 기존 DB 메뉴 중 이것일 가능성이 높은 후보들
-  quantity: number;
-}
-
-// 사람별 주문
+// 사용자별 주문
 export interface UserOrder {
   id: string;
-  userName: string;              // 예: "조예성", "김현수"
-  departmentName: string;        // 예: "메카트로닉스", "IT"
-  time?: string;                 // 예: "오후 8:21"
-  rawText: string;               // 원본 텍스트 구절
+  userName: string;
+  departmentName: string;
+  rawText?: string;
   items: ParsedOrderItem[];
 }
 
-// 직종별 그룹화된 주문
-export interface DepartmentGroupOrder {
-  departmentName: string;
-  userOrders: UserOrder[];
-  totalCount: number;
+// 미등록/신규 메뉴 제안
+export interface UnregisteredItem {
+  id: string;
+  rawText: string;
+  suggestedName: string;
+  suggestedAliases: string[];
+  userName?: string;
+  departmentName?: string;
+  quantity?: number;
+  suggestedExistingMatches?: { menuId: string; menuName: string }[];
 }
 
-// AI 전체 분석 결과
+// AI 파싱 전체 결과
 export interface AiParseResult {
   userOrders: UserOrder[];
-  unregisteredItems: UnregisteredItem[];
+  unregisteredItems?: UnregisteredItem[];
 }
 
 // 주문 세션
 export interface OrderSession {
-  date: string;
+  date?: string;
   restaurantId: string;
-  rawChatText: string;           // 카카오톡 채팅 전문
-  userOrders: UserOrder[];       // 사람별 분석 내역
-  unregisteredItems: UnregisteredItem[]; // 유추된 미등록 메뉴 목록
+  rawChatText: string;
+  userOrders: UserOrder[];
+  unregisteredItems?: UnregisteredItem[];
 }
 
 // 합산 결과 항목
@@ -80,9 +65,16 @@ export interface AggregatedItem {
   quantity: number;
 }
 
-// 직종별 요약
+// 직종별 합산 결과
 export interface DepartmentSummary {
   departmentName: string;
   items: AggregatedItem[];
+  totalCount: number;
+}
+
+// 직종별 주문 그룹
+export interface DepartmentGroupOrder {
+  departmentName: string;
+  userOrders: UserOrder[];
   totalCount: number;
 }

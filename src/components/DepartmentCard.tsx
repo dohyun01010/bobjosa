@@ -10,12 +10,8 @@ interface DepartmentCardProps {
   rawText: string;
   items: ParsedOrderItem[];
   menuItems: MenuItem[];
-  restaurantSelected: boolean;
-  onRawTextChange: (text: string) => void;
-  onAnalyze: (items: ParsedOrderItem[]) => void;
-  onItemUpdate: (itemId: string, menuId: string, menuName: string) => void;
-  onItemDelete: (itemId: string) => void;
-  onItemQuantityChange: (itemId: string, quantity: number) => void;
+  onTextChange: (text: string) => void;
+  onItemsChange: (items: ParsedOrderItem[]) => void;
 }
 
 export default function DepartmentCard({
@@ -23,213 +19,266 @@ export default function DepartmentCard({
   rawText,
   items,
   menuItems,
-  restaurantSelected,
-  onRawTextChange,
-  onAnalyze,
-  onItemUpdate,
-  onItemDelete,
-  onItemQuantityChange,
+  onTextChange,
+  onItemsChange,
 }: DepartmentCardProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isEditingText, setIsEditingText] = useState(false);
 
-  const confirmedCount = items.filter(i => i.status === 'confirmed').length;
-  const ambiguousCount = items.filter(i => i.status === 'ambiguous').length;
-  const errorCount = items.filter(i => i.status === 'error').length;
-  const totalQuantity = items
+  const handleParseText = () => {
+    const rawEntries = parseOrderText(rawText);
+    const matched = matchAllEntries(rawEntries, menuItems);
+    onItemsChange(matched);
+    setIsEditingText(false);
+  };
+
+  const handleFixCandidate = (itemId: string, chosenMenuId: string, chosenMenuName: string) => {
+    const updated = items.map(item => {
+      if (item.id === itemId) {
+        return {
+          ...item,
+          matchedMenuId: chosenMenuId,
+          matchedMenuName: chosenMenuName,
+          status: 'confirmed' as const,
+        };
+      }
+      return item;
+    });
+    onItemsChange(updated);
+  };
+
+  const handleQuantityChange = (itemId: string, newQty: number) => {
+    if (newQty <= 0) return;
+    const updated = items.map(item => {
+      if (item.id === itemId) {
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    });
+    onItemsChange(updated);
+  };
+
+  const handleDeleteItem = (itemId: string) => {
+    const updated = items.filter(item => item.id !== itemId);
+    onItemsChange(updated);
+  };
+
+  const confirmedCount = items
     .filter(i => i.status === 'confirmed')
     .reduce((sum, i) => sum + i.quantity, 0);
 
-  const handleAnalyze = () => {
-    if (!restaurantSelected || !rawText.trim()) return;
-    const parsed = parseOrderText(rawText);
-    const matched = matchAllEntries(parsed, menuItems);
-    onAnalyze(matched);
-  };
+  const hasIssues = items.some(i => i.status === 'ambiguous' || i.status === 'error' || i.status === 'uncertain');
 
   return (
-    <div className="glass-card overflow-hidden transition-all duration-300">
+    <div className="glass-card p-5 space-y-4">
       {/* Card Header */}
-      <div
-        className="flex items-center justify-between px-5 py-3 cursor-pointer hover:bg-bg-card-hover/50 transition-colors duration-150"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-accent-primary" />
-          <h3 className="text-sm font-semibold text-text-primary">{departmentName}</h3>
-          {items.length > 0 && (
-            <div className="flex items-center gap-1.5 ml-1">
-              {confirmedCount > 0 && (
-                <span className="badge badge-success">{confirmedCount}건</span>
-              )}
-              {ambiguousCount > 0 && (
-                <span className="badge badge-warning">{ambiguousCount}건</span>
-              )}
-              {errorCount > 0 && (
-                <span className="badge badge-error">{errorCount}건</span>
-              )}
-            </div>
-          )}
-        </div>
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {totalQuantity > 0 && (
-            <span className="text-xs text-text-muted">총 {totalQuantity}개</span>
+          <h3 className="font-bold text-text-primary text-base">{departmentName}</h3>
+          <span className="badge badge-primary text-xs">
+            {confirmedCount}개 확정
+          </span>
+          {hasIssues && (
+            <span className="badge badge-warning text-xs">
+              확인 필요
+            </span>
           )}
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className={`text-text-muted transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
         </div>
+
+        <button
+          onClick={() => setIsEditingText(!isEditingText)}
+          className="text-xs text-accent-primary hover:underline cursor-pointer flex items-center gap-1 font-medium"
+        >
+          {isEditingText ? '접기 ✕' : '✏️ 텍스트 수정'}
+        </button>
       </div>
 
-      {/* Card Body */}
-      {!isCollapsed && (
-        <div className="px-5 pb-4 space-y-3 border-t border-border-primary/50">
-          {/* Textarea & Analyze Button */}
-          <div className="pt-3 space-y-2">
-            <textarea
-              value={rawText}
-              onChange={e => onRawTextChange(e.target.value)}
-              placeholder={
-                restaurantSelected
-                  ? '카카오톡 주문 메시지를 붙여넣으세요...\n예: 고국 2\n    국밥 3\n    얼큰 1'
-                  : '먼저 상단에서 식당을 선택하세요'
-              }
-              disabled={!restaurantSelected}
-              className="textarea-order disabled:opacity-50 disabled:cursor-not-allowed"
-              rows={4}
-            />
+      {/* Editable Textarea Area */}
+      {isEditingText && (
+        <div className="space-y-2 animate-fade-in">
+          <textarea
+            value={rawText}
+            onChange={e => onTextChange(e.target.value)}
+            placeholder={`예: 고국 2, 국밥 2\n(직종 주문 텍스트를 입력하세요)`}
+            className="input-field w-full h-24 p-3 text-xs font-mono"
+          />
+          <div className="flex justify-end">
             <button
-              onClick={handleAnalyze}
-              disabled={!restaurantSelected || !rawText.trim()}
-              className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
+              onClick={handleParseText}
+              className="btn-primary text-xs py-1.5 px-4"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-              </svg>
-              분석하기
+              다시 파싱하기
             </button>
           </div>
-
-          {/* Parsed Items */}
-          {items.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-xs text-text-muted font-medium pt-1">분석 결과</p>
-              {items.map(item => (
-                <OrderItemRow
-                  key={item.id}
-                  item={item}
-                  menuItems={menuItems}
-                  onUpdate={onItemUpdate}
-                  onDelete={onItemDelete}
-                  onQuantityChange={onItemQuantityChange}
-                />
-              ))}
-            </div>
-          )}
         </div>
       )}
+
+      {/* Parsed Items List */}
+      <div className="space-y-2">
+        {items.length === 0 ? (
+          <p className="text-xs text-text-muted py-2">
+            주문 내역이 없습니다.
+          </p>
+        ) : (
+          items.map(item => (
+            <ItemRow
+              key={item.id}
+              item={item}
+              menuItems={menuItems}
+              onFixCandidate={handleFixCandidate}
+              onQuantityChange={handleQuantityChange}
+              onDeleteItem={handleDeleteItem}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 }
 
-/* Individual parsed order item row */
-function OrderItemRow({
+function ItemRow({
   item,
   menuItems,
-  onUpdate,
-  onDelete,
+  onFixCandidate,
   onQuantityChange,
+  onDeleteItem,
 }: {
   item: ParsedOrderItem;
   menuItems: MenuItem[];
-  onUpdate: (itemId: string, menuId: string, menuName: string) => void;
-  onDelete: (itemId: string) => void;
-  onQuantityChange: (itemId: string, quantity: number) => void;
+  onFixCandidate: (itemId: string, chosenMenuId: string, chosenMenuName: string) => void;
+  onQuantityChange: (itemId: string, newQty: number) => void;
+  onDeleteItem: (itemId: string) => void;
 }) {
+  const [showDropdown, setShowDropdown] = useState(false);
+
   const statusConfig = {
     confirmed: {
-      bg: 'bg-accent-success/5',
-      border: 'border-accent-success/20',
+      bg: 'bg-emerald-500/10',
+      border: 'border-emerald-500/30',
       icon: '✅',
     },
     ambiguous: {
-      bg: 'bg-accent-warning/5',
-      border: 'border-accent-warning/20',
-      icon: '⚠️',
+      bg: 'bg-amber-500/10',
+      border: 'border-amber-500/30',
+      icon: '❓',
+    },
+    uncertain: {
+      bg: 'bg-rose-500/10',
+      border: 'border-rose-500/30',
+      icon: '❓',
     },
     error: {
-      bg: 'bg-accent-error/5',
-      border: 'border-accent-error/20',
+      bg: 'bg-rose-500/10',
+      border: 'border-rose-500/30',
       icon: '❌',
     },
   };
 
-  const config = statusConfig[item.status];
+  const config = statusConfig[item.status] || statusConfig.confirmed;
 
   return (
-    <div className={`flex items-start gap-2 px-3 py-2 rounded-lg border ${config.bg} ${config.border} transition-colors duration-150`}>
-      <span className="text-sm mt-0.5 shrink-0">{config.icon}</span>
+    <div className={`flex flex-col gap-2 p-3 rounded-lg border ${config.bg} ${config.border} text-xs transition-all`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 flex-1">
+          <span>{config.icon}</span>
+          <span className="font-mono text-text-muted text-[11px]">&ldquo;{item.rawText}&rdquo;</span>
+          <span className="text-text-muted">➔</span>
 
-      <div className="flex-1 min-w-0">
-        {item.status === 'confirmed' && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-text-primary">{item.matchedMenuName}</span>
-            {item.rawText !== item.matchedMenuName && (
-              <span className="text-xs text-text-muted">← &ldquo;{item.rawText}&rdquo;</span>
-            )}
+          {item.status === 'confirmed' ? (
+            <span className="font-bold text-text-primary">{item.matchedMenuName}</span>
+          ) : (
+            <span className="text-accent-warning font-semibold">
+              {item.status === 'ambiguous' ? '메뉴 선택 필요' : '미인식 메뉴'}
+            </span>
+          )}
+        </div>
+
+        {/* Quantity control & delete */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-bg-card rounded border border-border-primary p-0.5">
+            <button
+              onClick={() => onQuantityChange(item.id, item.quantity - 1)}
+              className="w-5 h-5 flex items-center justify-center rounded hover:bg-bg-input text-text-secondary cursor-pointer"
+            >
+              -
+            </button>
+            <span className="font-bold px-1 min-w-[20px] text-center tabular-nums text-text-primary">
+              {item.quantity}
+            </span>
+            <button
+              onClick={() => onQuantityChange(item.id, item.quantity + 1)}
+              className="w-5 h-5 flex items-center justify-center rounded hover:bg-bg-input text-text-secondary cursor-pointer"
+            >
+              +
+            </button>
           </div>
-        )}
 
-        {item.status === 'ambiguous' && (
-          <div>
-            <p className="text-sm text-accent-warning font-medium mb-1.5">
-              &ldquo;{item.rawText}&rdquo; — 확인이 필요합니다
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {item.candidates?.map(c => (
-                <button
-                  key={c.menuId}
-                  onClick={() => onUpdate(item.id, c.menuId, c.menuName)}
-                  className="text-xs px-2.5 py-1 rounded-md bg-bg-card-hover border border-border-primary hover:border-accent-primary hover:text-accent-primary transition-colors duration-150"
-                >
-                  {c.menuName}
-                  <span className="text-text-muted ml-1">({Math.round(c.similarity * 100)}%)</span>
-                </button>
-              ))}
+          <button
+            onClick={() => onDeleteItem(item.id)}
+            className="text-text-muted hover:text-accent-error p-1 rounded cursor-pointer"
+            title="삭제"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {/* Ambiguous candidates list */}
+      {item.status === 'ambiguous' && item.candidates && item.candidates.length > 0 && (
+        <div className="pl-6 space-y-1 pt-1 border-t border-amber-500/20">
+          <p className="text-[11px] text-accent-warning font-medium">추천 메뉴 후보 중 선택하세요:</p>
+          <div className="flex flex-wrap gap-1.5">
+            {item.candidates.map(cand => (
+              <button
+                key={cand.menuId}
+                onClick={() => onFixCandidate(item.id, cand.menuId, cand.menuName)}
+                className="px-2 py-1 rounded bg-bg-card border border-amber-500/40 text-text-primary hover:bg-accent-primary hover:text-white cursor-pointer transition-all text-[11px]"
+              >
+                {cand.menuName} ({Math.round(cand.similarity * 100)}%)
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Error - Manual dropdown match */}
+      {item.status === 'error' && (
+        <div className="pl-6 pt-1 border-t border-rose-500/20">
+          {!showDropdown ? (
+            <button
+              onClick={() => setShowDropdown(true)}
+              className="text-[11px] text-accent-primary hover:underline cursor-pointer"
+            >
+              수동으로 메뉴 지정하기...
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <select
+                onChange={e => {
+                  const m = menuItems.find(x => x.id === e.target.value);
+                  if (m) onFixCandidate(item.id, m.id, m.name);
+                }}
+                className="input-field text-xs py-1 px-2"
+                defaultValue=""
+              >
+                <option value="" disabled>
+                  메뉴 선택...
+                </option>
+                {menuItems.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => setShowDropdown(false)}
+                className="text-text-muted hover:text-text-primary text-[11px]"
+              >
+                취소
+              </button>
             </div>
-          </div>
-        )}
-
-        {item.status === 'error' && (
-          <p className="text-sm text-accent-error">
-            &ldquo;{item.rawText}&rdquo; — 메뉴를 찾을 수 없습니다
-          </p>
-        )}
-      </div>
-
-      {/* Quantity & Actions */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        <input
-          type="number"
-          value={item.quantity}
-          onChange={e => onQuantityChange(item.id, Math.max(1, parseInt(e.target.value) || 1))}
-          className="w-12 h-7 text-center text-sm bg-bg-input border border-border-primary rounded-md text-text-primary focus:outline-none focus:border-accent-primary"
-          min={1}
-        />
-        <button onClick={() => onDelete(item.id)} className="btn-icon text-text-muted hover:text-accent-error">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
