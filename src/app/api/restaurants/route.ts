@@ -3,10 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { Restaurant } from '@/types';
 import { DEFAULT_RESTAURANTS } from '@/constants';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 
 const DB_FILE_PATH = path.join(process.cwd(), 'src/data/db_restaurants.json');
-
-// In-memory fallback if file system is read-only
 let memoryRestaurants: Restaurant[] = DEFAULT_RESTAURANTS;
 
 function readRestaurantsFromFile(): Restaurant[] {
@@ -41,16 +40,53 @@ function writeRestaurantsToFile(restaurants: Restaurant[]): boolean {
 }
 
 export async function GET() {
+  // 1. If Supabase is configured, fetch from Supabase Cloud DB
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('bobjosa_restaurants')
+        .select('*')
+        .eq('id', 'main_restaurants')
+        .single();
+
+      if (!error && data && Array.isArray(data.data) && data.data.length > 0) {
+        return NextResponse.json({ success: true, restaurants: data.data, source: 'supabase' });
+      }
+    } catch (err) {
+      console.warn('Supabase fetch notice, falling back to local storage:', err);
+    }
+  }
+
+  // 2. Fallback to local file / memory
   const restaurants = readRestaurantsFromFile();
-  return NextResponse.json({ success: true, restaurants });
+  return NextResponse.json({ success: true, restaurants, source: 'file' });
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     if (body.restaurants && Array.isArray(body.restaurants)) {
-      writeRestaurantsToFile(body.restaurants);
-      return NextResponse.json({ success: true, restaurants: body.restaurants });
+      const restaurantsData = body.restaurants;
+
+      // Always save to file/memory local fallback
+      writeRestaurantsToFile(restaurantsData);
+
+      // Save to Supabase Cloud DB if configured
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { error } = await supabase
+            .from('bobjosa_restaurants')
+            .upsert({ id: 'main_restaurants', data: restaurantsData, updated_at: new Date().toISOString() });
+
+          if (error) {
+            console.error('Supabase restaurants upsert error:', error);
+          }
+        } catch (sErr) {
+          console.error('Supabase write exception:', sErr);
+        }
+      }
+
+      return NextResponse.json({ success: true, restaurants: restaurantsData });
     }
     return NextResponse.json({ success: false, error: 'Invalid data format' }, { status: 400 });
   } catch (err: any) {

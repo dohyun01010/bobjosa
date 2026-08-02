@@ -1,20 +1,20 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { MEMBER_DEPARTMENT_MAP as DEFAULT_MEMBER_MAP, DepartmentName } from '@/constants';
+import { DepartmentName, MEMBER_DEPARTMENT_MAP } from '@/constants';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 
 const DB_FILE_PATH = path.join(process.cwd(), 'src/data/db_members.json');
-
-let memoryMemberMap: Record<string, DepartmentName> = DEFAULT_MEMBER_MAP;
+let memoryMemberMap: Record<string, DepartmentName> = MEMBER_DEPARTMENT_MAP;
 
 function readMemberMapFromFile(): Record<string, DepartmentName> {
   try {
     if (fs.existsSync(DB_FILE_PATH)) {
       const fileData = fs.readFileSync(DB_FILE_PATH, 'utf-8');
       const parsed = JSON.parse(fileData);
-      if (typeof parsed === 'object' && parsed !== null) {
-        memoryMemberMap = { ...DEFAULT_MEMBER_MAP, ...parsed };
-        return memoryMemberMap;
+      if (parsed && typeof parsed === 'object') {
+        memoryMemberMap = parsed;
+        return parsed;
       }
     }
   } catch (e) {
@@ -39,18 +39,57 @@ function writeMemberMapToFile(map: Record<string, DepartmentName>): boolean {
 }
 
 export async function GET() {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('bobjosa_members')
+        .select('*')
+        .eq('id', 'main_members')
+        .single();
+
+      if (!error && data && data.data) {
+        return NextResponse.json({ success: true, memberMap: data.data, source: 'supabase' });
+      }
+    } catch (err) {
+      console.warn('Supabase members fetch notice:', err);
+    }
+  }
+
   const memberMap = readMemberMapFromFile();
-  return NextResponse.json({ success: true, memberMap });
+  return NextResponse.json({ success: true, memberMap, source: 'file' });
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    if (body.memberMap && typeof body.memberMap === 'object') {
-      writeMemberMapToFile(body.memberMap as Record<string, DepartmentName>);
-      return NextResponse.json({ success: true, memberMap: body.memberMap });
+    if (body.memberName && body.departmentName) {
+      const currentMap = isSupabaseConfigured && supabase
+        ? (await (async () => {
+            const { data } = await supabase.from('bobjosa_members').select('*').eq('id', 'main_members').single();
+            return data?.data || readMemberMapFromFile();
+          })())
+        : readMemberMapFromFile();
+
+      const updatedMap = {
+        ...currentMap,
+        [body.memberName.trim()]: body.departmentName,
+      };
+
+      writeMemberMapToFile(updatedMap);
+
+      if (isSupabaseConfigured && supabase) {
+        try {
+          await supabase
+            .from('bobjosa_members')
+            .upsert({ id: 'main_members', data: updatedMap, updated_at: new Date().toISOString() });
+        } catch (sErr) {
+          console.error('Supabase members write error:', sErr);
+        }
+      }
+
+      return NextResponse.json({ success: true, memberMap: updatedMap });
     }
-    return NextResponse.json({ success: false, error: 'Invalid data format' }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Invalid payload' }, { status: 400 });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
