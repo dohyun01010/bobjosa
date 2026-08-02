@@ -27,23 +27,29 @@ export default function Header({
   }, []);
 
   return (
-    <header className="glass-card px-6 py-4 mb-6">
+    <header className="cursor-card px-6 py-4 mb-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        {/* Title */}
-        <div className="flex items-center gap-2">
-          <h1 className="text-lg font-bold text-text-primary tracking-tight">밥조사</h1>
-          <span className="badge badge-success text-[10px] px-2 py-0.5">클라우드 DB 연결됨</span>
+        {/* Brand & Wordmark */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-normal tracking-tighter text-[var(--ink)]">
+              밥조사 <span className="text-[var(--primary)] font-semibold">.</span>
+            </h1>
+            <span className="pill-done text-[10px]">
+              CLOUD DB CONNECTED
+            </span>
+          </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Restaurant Select */}
+        {/* Navigation & Controls */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Restaurant Selector */}
           <div className="flex items-center gap-2">
             <select
               id="restaurant-select"
               value={selectedRestaurantId}
               onChange={e => onRestaurantChange(e.target.value)}
-              className="select-field min-w-[170px] text-xs py-2 px-3"
+              className="cursor-select text-xs h-10 min-w-[170px]"
               suppressHydrationWarning
             >
               <option value="">식당 선택...</option>
@@ -56,26 +62,20 @@ export default function Header({
             </select>
           </div>
 
-          {/* AI Key Button */}
+          {/* AI Key Button (Cursor Orange signature primary CTA when unlinked, or secondary pill) */}
           <button
             onClick={onOpenApiKeyModal}
-            className={`btn-secondary text-xs py-2 px-3 flex items-center gap-1.5 ${
-              hasApiKey ? 'text-accent-success border-accent-success/30' : ''
-            }`}
+            className={hasApiKey ? "btn-cursor-secondary text-xs h-10" : "btn-cursor-primary text-xs h-10"}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-accent-success"></span>
+            <span className="w-2 h-2 rounded-full bg-[var(--primary)] mr-1.5"></span>
             <span>{hasApiKey ? 'AI 연결됨' : 'AI 키 설정'}</span>
           </button>
 
           {/* Menu Management Button */}
           <button
             onClick={onOpenMenuManagement}
-            className="btn-secondary text-xs py-2 px-3 flex items-center gap-1.5"
+            className="btn-cursor-secondary text-xs h-10"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
             메뉴 관리
           </button>
         </div>

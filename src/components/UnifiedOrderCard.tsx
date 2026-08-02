@@ -188,36 +188,35 @@ export default function UnifiedOrderCard({
   };
 
   return (
-    <div className="glass-card p-6 space-y-6 w-full">
-      {/* 1. Input Area */}
+    <div className="cursor-card p-6 space-y-6 w-full">
+      {/* 1. Editor Input Pane */}
       <div className="space-y-3 w-full">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-bold text-text-primary tracking-wide uppercase">
-            카카오톡 주문 대화
+          <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+            KAKAOTALK ORDER INPUT
           </label>
         </div>
 
-        <textarea
-          value={rawChatText}
-          onChange={e => onRawTextChange(e.target.value)}
-          placeholder="카카오톡 대화방의 주문 메시지 전체를 복사해서 붙여넣으세요..."
-          className="input-field w-full min-h-[360px] p-4 text-xs font-mono leading-relaxed resize-y block"
-          style={{ width: '100%' }}
-        />
+        <div className="cursor-pane p-1">
+          <textarea
+            value={rawChatText}
+            onChange={e => onRawTextChange(e.target.value)}
+            placeholder="카카오톡 대화방의 주문 메시지 전체를 복사해서 붙여넣으세요..."
+            className="w-full min-h-[360px] p-4 text-xs font-mono bg-transparent border-none focus:outline-none resize-y block text-[var(--ink)] leading-relaxed"
+            style={{ width: '100%' }}
+          />
+        </div>
 
         <button
           onClick={handleRunAiAnalysis}
           disabled={isAnalyzing}
-          className="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2 cursor-pointer shadow-none disabled:opacity-50"
+          className="btn-cursor-primary w-full text-sm font-medium cursor-pointer disabled:opacity-50"
         >
           {isAnalyzing ? (
-            <>
-              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              분석 중...
-            </>
+            <span className="flex items-center gap-2">
+              <span className="pill-thinking animate-pulse">PARSING...</span>
+              <span>AI 분석 실행 중</span>
+            </span>
           ) : (
             'AI 분석 실행'
           )}
@@ -245,14 +244,14 @@ export default function UnifiedOrderCard({
 
       {/* 3. Analysis Results List */}
       {userOrders.length > 0 && (
-        <div className="pt-4 border-t border-border-primary/60 space-y-4 w-full">
+        <div className="pt-6 border-t border-[var(--hairline)] space-y-4 w-full">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-text-primary tracking-wide uppercase">
-              사람별 주문 파싱 결과 ({userOrders.length}명)
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+              ORDERS PARSED ({userOrders.length} MEMBERS)
             </h3>
             {isVerified && (
-              <span className="badge badge-success text-[10px] py-0.5">
-                검증 완료
+              <span className="pill-done text-[10px]">
+                VERIFIED
               </span>
             )}
           </div>
@@ -261,76 +260,76 @@ export default function UnifiedOrderCard({
             {userOrders.map(user => (
               <div
                 key={user.id}
-                className="p-4 rounded-xl bg-bg-input/50 border border-border-primary/50 transition-all w-full"
+                className="p-4 rounded-xl cursor-pane space-y-3"
               >
-                <div className="flex items-center justify-between mb-2 pb-2 border-b border-border-primary/40">
+                <div className="flex items-center justify-between pb-2 border-b border-[var(--hairline-soft)]">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-text-primary text-xs">{user.userName}</span>
-                    <span className="badge badge-primary text-[10px] py-0">{user.departmentName}</span>
+                    <span className="font-semibold text-xs text-[var(--ink)]">{user.userName}</span>
+                    <span className="pill-grep text-[10px]">{user.departmentName}</span>
                   </div>
 
                   <button
                     onClick={() => handleDeleteUserOrder(user.id)}
-                    className="text-text-muted hover:text-accent-error text-xs transition-colors cursor-pointer"
+                    className="text-[var(--muted)] hover:text-[var(--semantic-error)] text-xs transition-colors cursor-pointer font-mono"
                     title="주문 삭제"
                   >
-                    삭제
+                    delete
                   </button>
                 </div>
 
                 <div className="space-y-2 w-full">
                   {user.items.map(item => (
                     <div key={item.id} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs py-1.5 px-3 rounded-lg bg-bg-card border border-border-primary/40 w-full">
+                      <div className="flex items-center justify-between text-xs py-2 px-3 rounded-lg bg-[var(--surface-card)] border border-[var(--hairline)] w-full">
                         <div className="flex items-center gap-2">
-                          <span className="text-text-primary font-medium text-xs">
+                          <span className="text-[var(--ink)] font-mono text-xs">
                             {item.matchedMenuName || item.rawText}
                           </span>
                           {item.status === 'ambiguous' && (
-                            <span className="badge badge-warning text-[10px] py-0">
-                              옵션 확인 필요
+                            <span className="pill-thinking text-[10px]">
+                              OPTION NEEDED
                             </span>
                           )}
                           {item.status === 'uncertain' && (
-                            <span className="badge badge-warning text-[10px] py-0">
-                              확인 필요
+                            <span className="pill-read text-[10px]">
+                              CHECK NEEDED
                             </span>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleEditItemQuantity(user.id, item.id, -1)}
-                            className="w-5 h-5 rounded-md bg-bg-input flex items-center justify-center font-bold text-text-secondary hover:bg-border-primary text-xs cursor-pointer"
+                            className="w-5 h-5 rounded bg-[var(--canvas)] flex items-center justify-center font-bold text-[var(--ink)] border border-[var(--hairline)] hover:bg-[var(--surface-strong)] text-xs cursor-pointer"
                           >
                             -
                           </button>
-                          <span className="font-bold text-text-primary tabular-nums min-w-[16px] text-center text-xs">
+                          <span className="font-bold text-[var(--ink)] tabular-nums font-mono text-xs">
                             {item.quantity}
                           </span>
                           <button
                             onClick={() => handleEditItemQuantity(user.id, item.id, +1)}
-                            className="w-5 h-5 rounded-md bg-bg-input flex items-center justify-center font-bold text-text-secondary hover:bg-border-primary text-xs cursor-pointer"
+                            className="w-5 h-5 rounded bg-[var(--canvas)] flex items-center justify-center font-bold text-[var(--ink)] border border-[var(--hairline)] hover:bg-[var(--surface-strong)] text-xs cursor-pointer"
                           >
                             +
                           </button>
                         </div>
                       </div>
 
-                      {/* Interactive Ambiguous Candidates (Burger Single vs Set) */}
+                      {/* Ambiguous Candidates (Burger Single vs Set) */}
                       {item.status === 'ambiguous' && item.candidates && item.candidates.length > 0 && (
-                        <div className="p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20 flex items-center justify-between text-xs gap-2">
-                          <span className="text-amber-800 font-medium text-[11px]">
+                        <div className="p-3 rounded-lg bg-[var(--canvas-soft)] border border-[var(--timeline-thinking)] flex items-center justify-between text-xs gap-2">
+                          <span className="text-[var(--ink)] font-medium text-xs">
                             &ldquo;{item.rawText}&rdquo; 옵션 선택:
                           </span>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5">
                             {item.candidates.map(cand => (
                               <button
                                 key={cand.menuId}
                                 onClick={() =>
                                   handleSelectAmbiguousCandidate(user.id, item.id, cand.menuName)
                                 }
-                                className="px-2.5 py-1 rounded-md bg-amber-600 text-white font-medium hover:bg-amber-700 cursor-pointer text-[11px]"
+                                className="btn-cursor-ink text-xs h-7 py-1 px-3"
                               >
                                 {cand.menuName}
                               </button>
@@ -339,22 +338,22 @@ export default function UnifiedOrderCard({
                         </div>
                       )}
 
-                      {/* Interactive Human-in-the-loop Question Card for Uncertain Items */}
+                      {/* Uncertain Item Card */}
                       {item.status === 'uncertain' && (
-                        <div className="p-2.5 rounded-lg bg-rose-500/5 border border-rose-500/20 flex items-center justify-between text-xs gap-2">
-                          <span className="text-rose-800 font-medium text-[11px]">
+                        <div className="p-3 rounded-lg bg-[var(--canvas-soft)] border border-[var(--timeline-read)] flex items-center justify-between text-xs gap-2">
+                          <span className="text-[var(--ink)] font-medium text-xs">
                             &ldquo;{item.rawText}&rdquo; 메뉴인가요?
                           </span>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleConfirmUncertainItem(user.id, item.id)}
-                              className="px-2.5 py-1 rounded-md bg-accent-success text-white font-medium cursor-pointer text-[11px]"
+                              className="btn-cursor-primary text-xs h-7 py-1 px-3"
                             >
                               메뉴 확정
                             </button>
                             <button
                               onClick={() => handleRejectUncertainItem(user.id, item.id)}
-                              className="px-2.5 py-1 rounded-md bg-accent-error text-white font-medium cursor-pointer text-[11px]"
+                              className="btn-cursor-secondary text-xs h-7 py-1 px-3"
                             >
                               제외
                             </button>
