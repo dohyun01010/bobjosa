@@ -6,6 +6,7 @@ import {
   UnregisteredItem,
   AiParseResult,
   MenuItem,
+  ParsedOrderItem,
 } from '../types';
 import { DepartmentName } from '../constants';
 import { parseChatWithAi } from '../lib/aiParser';
@@ -90,6 +91,25 @@ export default function UnifiedOrderCard({
           .filter(item => item.quantity > 0),
       };
     }).filter(u => u.items.length > 0);
+
+    onUserOrderUpdate(updated);
+  };
+
+  const handleSelectAmbiguousCandidate = (userId: string, itemId: string, chosenName: string) => {
+    const updated = userOrders.map(u => {
+      if (u.id !== userId) return u;
+      return {
+        ...u,
+        items: u.items.map(item => {
+          if (item.id !== itemId) return item;
+          return {
+            ...item,
+            matchedMenuName: chosenName,
+            status: 'confirmed' as const,
+          };
+        }),
+      };
+    });
 
     onUserOrderUpdate(updated);
   };
@@ -188,30 +208,61 @@ export default function UnifiedOrderCard({
                   </button>
                 </div>
 
-                <div className="space-y-1.5 w-full">
+                <div className="space-y-2 w-full">
                   {user.items.map(item => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between text-xs py-1 px-2.5 rounded bg-bg-card border border-border-primary/40 w-full"
-                    >
-                      <span className="text-text-primary font-medium">{item.matchedMenuName || item.rawText}</span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleEditItemQuantity(user.id, item.id, -1)}
-                          className="w-5 h-5 rounded bg-bg-input border border-border-primary flex items-center justify-center font-bold text-text-secondary hover:bg-border-primary cursor-pointer"
-                        >
-                          -
-                        </button>
-                        <span className="font-bold text-accent-primary tabular-nums min-w-[16px] text-center">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => handleEditItemQuantity(user.id, item.id, +1)}
-                          className="w-5 h-5 rounded bg-bg-input border border-border-primary flex items-center justify-center font-bold text-text-secondary hover:bg-border-primary cursor-pointer"
-                        >
-                          +
-                        </button>
+                    <div key={item.id} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded bg-bg-card border border-border-primary/40 w-full">
+                        <div className="flex items-center gap-2">
+                          <span className="text-text-primary font-medium">
+                            {item.matchedMenuName || item.rawText}
+                          </span>
+                          {item.status === 'ambiguous' && (
+                            <span className="badge badge-warning text-[10px] py-0">
+                              ❓ 옵션(단품/세트) 확인 필요
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleEditItemQuantity(user.id, item.id, -1)}
+                            className="w-5 h-5 rounded bg-bg-input border border-border-primary flex items-center justify-center font-bold text-text-secondary hover:bg-border-primary cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <span className="font-bold text-accent-primary tabular-nums min-w-[16px] text-center">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => handleEditItemQuantity(user.id, item.id, +1)}
+                            className="w-5 h-5 rounded bg-bg-input border border-border-primary flex items-center justify-center font-bold text-text-secondary hover:bg-border-primary cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
+
+                      {/* Interactive Ambiguous Candidates (Single vs Set option prompt) */}
+                      {item.status === 'ambiguous' && item.candidates && item.candidates.length > 0 && (
+                        <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs gap-2">
+                          <span className="text-amber-800 font-semibold flex items-center gap-1">
+                            <span>❓</span> &ldquo;{item.rawText}&rdquo; 옵션을 선택해 주세요:
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {item.candidates.map(cand => (
+                              <button
+                                key={cand.menuId}
+                                onClick={() =>
+                                  handleSelectAmbiguousCandidate(user.id, item.id, cand.menuName)
+                                }
+                                className="px-2.5 py-1 rounded bg-amber-600 text-white font-bold hover:bg-amber-700 cursor-pointer transition-all shadow-sm text-[11px]"
+                              >
+                                {cand.menuName}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

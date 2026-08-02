@@ -161,7 +161,7 @@ export default function MenuManagementModal({
               <button
                 type="button"
                 onClick={() => setShowAddRestaurant(!showAddRestaurant)}
-                className="text-xs text-text-accent hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-xs text-accent-primary hover:underline flex items-center gap-1 cursor-pointer font-medium"
               >
                 <span>➕</span> {showAddRestaurant ? '접기' : '새 식당 추가'}
               </button>
@@ -188,20 +188,23 @@ export default function MenuManagementModal({
             )}
 
             <div className="flex flex-wrap gap-2">
-              {restaurants.map(r => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setSelectedRestaurantId(r.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                    selectedRestaurantId === r.id
-                      ? 'bg-accent-primary text-white shadow-md'
-                      : 'bg-bg-input text-text-secondary hover:text-text-primary border border-border-primary'
-                  }`}
-                >
-                  {r.name} ({r.menuItems.length})
-                </button>
-              ))}
+              {restaurants.map(r => {
+                const isSelected = selectedRestaurantId === r.id;
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setSelectedRestaurantId(r.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-blue-600 text-white shadow-md border-2 border-blue-700'
+                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-300'
+                    }`}
+                  >
+                    {r.name} ({r.menuItems.length})
+                  </button>
+                );
+              })}
             </div>
           </div>
 
