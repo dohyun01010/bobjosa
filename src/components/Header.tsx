@@ -30,14 +30,9 @@ export default function Header({
     <header className="glass-card px-6 py-4 mb-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         {/* Title */}
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-accent-primary/10 flex items-center justify-center font-bold text-accent-primary text-sm">
-            밥
-          </div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold text-text-primary tracking-tight">밥조사</h1>
-            <span className="badge badge-success text-[10px] px-2 py-0.5">클라우드 DB 연결됨</span>
-          </div>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-bold text-text-primary tracking-tight">밥조사</h1>
+          <span className="badge badge-success text-[10px] px-2 py-0.5">클라우드 DB 연결됨</span>
         </div>
 
         {/* Controls */}
