@@ -76,14 +76,6 @@ export default function UnifiedOrderCard({
     }
   };
 
-  const fillSampleChat = () => {
-    const sample = `오전 9:23 조예성 육짬뽕밥1(포장) 짜장면1
-오전 9:31 조윤성 짜장면 1
-오전 9:34 박범주 짜장면 1 해물짬뽕 1
-오전 10:40 이시형 해물짬뽕 1 짜장밥 1`;
-    onRawTextChange(sample);
-  };
-
   const handleEditItemQuantity = (userId: string, itemId: string, delta: number) => {
     const updated = userOrders.map(u => {
       if (u.id !== userId) return u;
@@ -115,13 +107,6 @@ export default function UnifiedOrderCard({
           <label className="text-sm font-bold text-text-primary flex items-center gap-2">
             <span>💬</span> 카카오톡 주문 대화 전문 붙여넣기
           </label>
-          <button
-            type="button"
-            onClick={fillSampleChat}
-            className="text-xs text-accent-primary hover:underline cursor-pointer flex items-center gap-1 font-medium"
-          >
-            ✨ 예시 데이터 채우기 (신규 인물 예시 포함)
-          </button>
         </div>
 
         <textarea
