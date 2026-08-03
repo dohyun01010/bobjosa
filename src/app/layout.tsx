@@ -13,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className="h-full antialiased dark">
-      <body className="min-h-full flex flex-col bg-bg-primary text-text-primary">
+      <body className="min-h-full flex flex-col discord-mesh-bg text-[var(--colors-ink)]">
         {children}
       </body>
     </html>

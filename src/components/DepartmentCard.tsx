@@ -69,16 +69,16 @@ export default function DepartmentCard({
   const hasIssues = items.some(i => i.status === 'ambiguous' || i.status === 'error' || i.status === 'uncertain');
 
   return (
-    <div className="glass-card p-5 space-y-4">
+    <div className="discord-card p-5 space-y-4">
       {/* Card Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="font-bold text-text-primary text-base">{departmentName}</h3>
-          <span className="badge badge-primary text-xs">
+          <h3 className="font-display font-extrabold text-[var(--colors-ink)] text-base">{departmentName}</h3>
+          <span className="badge-discord-green text-xs">
             {confirmedCount}개 확정
           </span>
           {hasIssues && (
-            <span className="badge badge-warning text-xs">
+            <span className="badge-discord-yellow text-xs">
               확인 필요
             </span>
           )}
@@ -86,7 +86,7 @@ export default function DepartmentCard({
 
         <button
           onClick={() => setIsEditingText(!isEditingText)}
-          className="text-xs text-accent-primary hover:underline cursor-pointer flex items-center gap-1 font-medium"
+          className="text-xs text-[var(--colors-primary)] hover:underline cursor-pointer flex items-center gap-1 font-bold"
         >
           {isEditingText ? '접기 ✕' : '✏️ 텍스트 수정'}
         </button>
@@ -94,17 +94,17 @@ export default function DepartmentCard({
 
       {/* Editable Textarea Area */}
       {isEditingText && (
-        <div className="space-y-2 animate-fade-in">
+        <div className="space-y-2">
           <textarea
             value={rawText}
             onChange={e => onTextChange(e.target.value)}
             placeholder={`예: 고국 2, 국밥 2\n(직종 주문 텍스트를 입력하세요)`}
-            className="input-field w-full h-24 p-3 text-xs font-mono"
+            className="discord-input w-full h-24 p-3 text-xs font-mono"
           />
           <div className="flex justify-end">
             <button
               onClick={handleParseText}
-              className="btn-primary text-xs py-1.5 px-4"
+              className="button-primary text-xs py-1.5 px-4"
             >
               다시 파싱하기
             </button>
@@ -115,7 +115,7 @@ export default function DepartmentCard({
       {/* Parsed Items List */}
       <div className="space-y-2">
         {items.length === 0 ? (
-          <p className="text-xs text-text-muted py-2">
+          <p className="text-xs text-[var(--colors-muted)] py-2">
             주문 내역이 없습니다.
           </p>
         ) : (
@@ -152,23 +152,23 @@ function ItemRow({
 
   const statusConfig = {
     confirmed: {
-      bg: 'bg-emerald-500/10',
-      border: 'border-emerald-500/30',
+      bg: 'bg-[var(--colors-surface-onyx)]',
+      border: 'border-[var(--colors-hairline)]',
       icon: '✅',
     },
     ambiguous: {
-      bg: 'bg-amber-500/10',
-      border: 'border-amber-500/30',
+      bg: 'bg-[var(--colors-surface-onyx)]',
+      border: 'border-[var(--discord-yellow)]',
       icon: '❓',
     },
     uncertain: {
-      bg: 'bg-rose-500/10',
-      border: 'border-rose-500/30',
+      bg: 'bg-[var(--colors-surface-onyx)]',
+      border: 'border-[var(--discord-yellow)]',
       icon: '❓',
     },
     error: {
-      bg: 'bg-rose-500/10',
-      border: 'border-rose-500/30',
+      bg: 'bg-[var(--colors-surface-onyx)]',
+      border: 'border-[var(--discord-red)]',
       icon: '❌',
     },
   };
@@ -176,17 +176,17 @@ function ItemRow({
   const config = statusConfig[item.status] || statusConfig.confirmed;
 
   return (
-    <div className={`flex flex-col gap-2 p-3 rounded-lg border ${config.bg} ${config.border} text-xs transition-all`}>
+    <div className={`flex flex-col gap-2 p-3 rounded-[var(--rounded-xs)] border ${config.bg} ${config.border} text-xs transition-all`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-1">
           <span>{config.icon}</span>
-          <span className="font-mono text-text-muted text-[11px]">&ldquo;{item.rawText}&rdquo;</span>
-          <span className="text-text-muted">➔</span>
+          <span className="font-mono text-[var(--colors-muted)] text-[11px]">&ldquo;{item.rawText}&rdquo;</span>
+          <span className="text-[var(--colors-muted)]">➔</span>
 
           {item.status === 'confirmed' ? (
-            <span className="font-bold text-text-primary">{item.matchedMenuName}</span>
+            <span className="font-bold text-[var(--colors-ink)]">{item.matchedMenuName}</span>
           ) : (
-            <span className="text-accent-warning font-semibold">
+            <span className="text-[var(--discord-yellow)] font-semibold">
               {item.status === 'ambiguous' ? '메뉴 선택 필요' : '미인식 메뉴'}
             </span>
           )}
@@ -194,19 +194,19 @@ function ItemRow({
 
         {/* Quantity control & delete */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-bg-card rounded border border-border-primary p-0.5">
+          <div className="flex items-center gap-1 bg-[var(--colors-surface-indigo)] rounded px-1 py-0.5 border border-[var(--border-primary)]">
             <button
               onClick={() => onQuantityChange(item.id, item.quantity - 1)}
-              className="w-5 h-5 flex items-center justify-center rounded hover:bg-bg-input text-text-secondary cursor-pointer"
+              className="w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--colors-primary)] text-white cursor-pointer"
             >
               -
             </button>
-            <span className="font-bold px-1 min-w-[20px] text-center tabular-nums text-text-primary">
+            <span className="font-bold px-1 min-w-[20px] text-center tabular-nums font-mono text-[var(--colors-ink)]">
               {item.quantity}
             </span>
             <button
               onClick={() => onQuantityChange(item.id, item.quantity + 1)}
-              className="w-5 h-5 flex items-center justify-center rounded hover:bg-bg-input text-text-secondary cursor-pointer"
+              className="w-5 h-5 flex items-center justify-center rounded hover:bg-[var(--colors-primary)] text-white cursor-pointer"
             >
               +
             </button>
@@ -214,7 +214,7 @@ function ItemRow({
 
           <button
             onClick={() => onDeleteItem(item.id)}
-            className="text-text-muted hover:text-accent-error p-1 rounded cursor-pointer"
+            className="text-[var(--colors-muted)] hover:text-[var(--discord-red)] p-1 cursor-pointer font-bold"
             title="삭제"
           >
             ✕
@@ -224,14 +224,14 @@ function ItemRow({
 
       {/* Ambiguous candidates list */}
       {item.status === 'ambiguous' && item.candidates && item.candidates.length > 0 && (
-        <div className="pl-6 space-y-1 pt-1 border-t border-amber-500/20">
-          <p className="text-[11px] text-accent-warning font-medium">추천 메뉴 후보 중 선택하세요:</p>
+        <div className="pl-6 space-y-1 pt-1 border-t border-[var(--colors-hairline)]">
+          <p className="text-[11px] text-[var(--discord-yellow)] font-bold">추천 메뉴 후보 중 선택하세요:</p>
           <div className="flex flex-wrap gap-1.5">
             {item.candidates.map(cand => (
               <button
                 key={cand.menuId}
                 onClick={() => onFixCandidate(item.id, cand.menuId, cand.menuName)}
-                className="px-2 py-1 rounded bg-bg-card border border-amber-500/40 text-text-primary hover:bg-accent-primary hover:text-white cursor-pointer transition-all text-[11px]"
+                className="px-2 py-1 rounded-[var(--rounded-xs)] button-primary text-[11px]"
               >
                 {cand.menuName} ({Math.round(cand.similarity * 100)}%)
               </button>
@@ -242,11 +242,11 @@ function ItemRow({
 
       {/* Error - Manual dropdown match */}
       {item.status === 'error' && (
-        <div className="pl-6 pt-1 border-t border-rose-500/20">
+        <div className="pl-6 pt-1 border-t border-[var(--colors-hairline)]">
           {!showDropdown ? (
             <button
               onClick={() => setShowDropdown(true)}
-              className="text-[11px] text-accent-primary hover:underline cursor-pointer"
+              className="text-[11px] text-[var(--colors-primary)] hover:underline cursor-pointer font-bold"
             >
               수동으로 메뉴 지정하기...
             </button>
@@ -257,7 +257,7 @@ function ItemRow({
                   const m = menuItems.find(x => x.id === e.target.value);
                   if (m) onFixCandidate(item.id, m.id, m.name);
                 }}
-                className="input-field text-xs py-1 px-2"
+                className="discord-select text-xs py-1 px-2"
                 defaultValue=""
               >
                 <option value="" disabled>
@@ -271,7 +271,7 @@ function ItemRow({
               </select>
               <button
                 onClick={() => setShowDropdown(false)}
-                className="text-text-muted hover:text-text-primary text-[11px]"
+                className="text-[var(--colors-muted)] hover:text-white text-[11px] font-bold"
               >
                 취소
               </button>

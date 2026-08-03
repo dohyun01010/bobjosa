@@ -37,33 +37,33 @@ export default function ApiKeyModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#313338] border border-[#1f2023] w-full max-w-md rounded-xl shadow-2xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div className="bg-[var(--colors-surface-indigo)] border border-[var(--border-primary)] w-full max-w-md rounded-[var(--rounded-lg)] shadow-2xl overflow-hidden flex flex-col">
         {/* Discord Modal Header */}
-        <div className="px-6 py-4 bg-[#2b2d31] border-b border-[#1f2023] flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="px-6 py-4 bg-[var(--colors-surface-onyx)] border-b border-[var(--colors-hairline)] flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <span className="text-xl">🔑</span>
             <div>
-              <h2 className="text-base font-extrabold text-[var(--text-primary)] uppercase tracking-wider">
+              <h2 className="text-base font-display font-extrabold text-[var(--colors-ink)] uppercase tracking-wider">
                 Google Gemini API Key 설정
               </h2>
-              <p className="text-xs text-[var(--text-muted)] font-medium">
+              <p className="text-xs text-[var(--colors-muted)] font-medium">
                 AI 파싱 엔진 연동키를 설정합니다.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-2 text-xl font-bold transition-colors cursor-pointer"
+            className="text-[var(--colors-muted)] hover:text-white p-2 text-xl font-bold transition-colors cursor-pointer"
           >
             ✕
           </button>
         </div>
 
         {/* Discord Modal Content */}
-        <div className="p-6 space-y-4 bg-[#313338]">
+        <div className="p-6 space-y-4 bg-[var(--colors-surface-indigo)]">
           <div className="space-y-2">
-            <label className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-muted)] block">
+            <label className="text-xs font-display font-extrabold uppercase tracking-wider text-[var(--colors-muted)] block">
               Gemini API Key
             </label>
             <input
@@ -78,7 +78,7 @@ export default function ApiKeyModal({
           <div className="flex justify-between items-center pt-2">
             <button
               onClick={handleResetToDefault}
-              className="text-xs text-[var(--primary-blurple)] hover:underline font-bold cursor-pointer"
+              className="text-xs text-[var(--colors-primary)] hover:underline font-bold cursor-pointer"
             >
               ⚡ 기본값으로 설정
             </button>
@@ -86,7 +86,7 @@ export default function ApiKeyModal({
               href="https://aistudio.google.com/app/api-keys?project=gen-lang-client-0101333658"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-[var(--discord-green)] hover:underline font-bold"
+              className="text-xs text-[var(--colors-green)] hover:underline font-bold"
             >
               🔑 키 발급받기 ➔
             </a>
@@ -94,16 +94,16 @@ export default function ApiKeyModal({
         </div>
 
         {/* Discord Modal Footer */}
-        <div className="px-6 py-4 bg-[#2b2d31] border-t border-[#1f2023] flex items-center justify-end gap-3">
+        <div className="px-6 py-4 bg-[var(--colors-surface-onyx)] border-t border-[var(--colors-hairline)] flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="btn-discord-secondary text-xs py-2 px-4 font-bold"
+            className="button-ghost text-xs py-2 px-4 font-bold"
           >
             취소
           </button>
           <button
             onClick={handleSave}
-            className="btn-discord-blurple text-xs py-2 px-5 font-bold"
+            className="button-primary text-xs py-2 px-5 font-bold"
           >
             저장 및 적용
           </button>

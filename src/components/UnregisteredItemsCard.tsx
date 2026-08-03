@@ -21,28 +21,29 @@ export default function UnregisteredItemsCard({
   if (unregisteredItems.length === 0) return null;
 
   return (
-    <div className="p-4 rounded-xl bg-[#2b2d31] border border-[var(--primary-blurple)] space-y-3">
+    <div className="p-4 rounded-[var(--rounded-lg)] bg-gradient-to-r from-[var(--colors-surface-indigo)] to-[#2d1b4e] border-2 border-[var(--colors-magenta)] space-y-3 shadow-xl">
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-extrabold uppercase tracking-wider text-[var(--primary-blurple)] flex items-center gap-2">
+        <h4 className="text-xs font-display font-extrabold uppercase tracking-wider text-[var(--colors-magenta)] flex items-center gap-2">
           <span>✨</span>
-          <span>미등록 신규 메뉴 DB 추가 제안</span>
+          <span>미등록 신규 메뉴 DB 자동 추천</span>
         </h4>
+        <span className="badge-magenta text-[10px]">NEW ITEM</span>
       </div>
 
       <div className="space-y-3">
         {unregisteredItems.map(item => (
           <div
             key={item.id}
-            className="p-3 rounded bg-[#313338] border border-[#1e1f22] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+            className="p-3.5 rounded-[var(--rounded-sm)] bg-[var(--colors-surface-onyx)] border border-[var(--colors-hairline)] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shadow-inner"
           >
             <div className="flex items-center gap-2">
-              <span className="font-bold text-[var(--text-primary)] text-xs">&ldquo;{item.rawText}&rdquo;</span>
+              <span className="font-extrabold text-[var(--colors-ink)] text-sm">&ldquo;{item.rawText}&rdquo;</span>
             </div>
 
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => onAddToDb(item.suggestedName, item.suggestedAliases)}
-                className="btn-discord-green text-[11px] h-7 py-1 px-2.5 font-bold"
+                className="button-green text-[11px] h-7 py-1 px-3 font-bold"
               >
                 + 신규 메뉴 추가
               </button>
@@ -55,7 +56,7 @@ export default function UnregisteredItemsCard({
                       onDismiss(item.id);
                     }
                   }}
-                  className="discord-select text-[11px] h-7 py-0 px-2"
+                  className="discord-select text-[11px] h-7 py-0 px-2 bg-[var(--colors-surface-indigo)] border-[var(--border-primary)]"
                   defaultValue=""
                 >
                   <option value="" disabled>
@@ -71,7 +72,7 @@ export default function UnregisteredItemsCard({
 
               <button
                 onClick={() => onDismiss(item.id)}
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-[11px] ml-1 font-bold"
+                className="text-[var(--colors-muted)] hover:text-white text-[11px] font-bold px-1"
               >
                 무시
               </button>

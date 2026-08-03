@@ -259,13 +259,14 @@ export default function Home() {
         />
 
         {/* Top Action Bar */}
-        <div className="flex justify-between items-center mb-4 px-1">
-          <div className="text-xs text-text-muted flex items-center gap-2">
+        <div className="flex flex-wrap justify-between items-center mb-5 px-2 py-2.5 rounded-xl bg-[var(--colors-surface-indigo)] border border-[var(--border-primary)] shadow-sm">
+          <div className="text-xs text-[var(--colors-muted)] font-medium flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[var(--colors-green)] inline-block animate-pulse"></span>
             <span>🌐 모든 사용자가 동기화되는 공유 DB가 연동되었습니다.</span>
           </div>
           <button
             onClick={handleResetChatSession}
-            className="btn-danger text-xs py-1 px-3 flex items-center gap-1.5"
+            className="btn-discord-danger text-xs py-1.5 px-3 flex items-center gap-1.5 rounded-lg cursor-pointer transition-transform hover:scale-102"
             title="현재 작성한 대화 텍스트와 분석 결과만 리셋 (메뉴/구성원 DB는 유지됨)"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
