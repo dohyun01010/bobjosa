@@ -162,6 +162,43 @@ export async function POST(req: Request) {
           detail: `대화 학습 예시 삭제 (ID: ${id})`,
         });
       }
+    } else if (action === 'add_natural_instruction') {
+      const instructionText = body.instruction?.trim();
+      if (!instructionText) {
+        return NextResponse.json({ success: false, error: 'Instruction text is required' }, { status: 400 });
+      }
+
+      if (!updatedInstructions.includes(instructionText)) {
+        updatedInstructions.unshift(instructionText);
+      }
+
+      // Automatically parse alias patterns from natural language like "고국은 고기국수다", "고국 -> 고기국수", "불싸이는 싸이버거다"
+      const aliasMatch = instructionText.match(/['"]?([^'"]+?)['"]?\s*(?:은|는|->|=>|=|으로)\s*['"]?([^'"]+?)['"]?(?:다|\.|$)/);
+      if (aliasMatch) {
+        const srcAlias = aliasMatch[1].trim();
+        const tgtMenu = aliasMatch[2].replace(/(?:이다|다|로)$/, '').trim();
+        if (srcAlias && tgtMenu && srcAlias !== tgtMenu) {
+          updatedAliasMap[srcAlias] = tgtMenu;
+        }
+      }
+
+      updatedLogs.unshift({
+        id: `log-${Date.now()}`,
+        timestamp: nowIso,
+        action: 'PROMPT_UPDATE',
+        detail: `자연어 AI 학습 지시 추가: "${instructionText}"`,
+      });
+    } else if (action === 'delete_instruction') {
+      const instructionText = body.instruction?.trim();
+      if (instructionText) {
+        updatedInstructions = updatedInstructions.filter(item => item !== instructionText);
+        updatedLogs.unshift({
+          id: `log-${Date.now()}`,
+          timestamp: nowIso,
+          action: 'PROMPT_UPDATE',
+          detail: `AI 학습 지시 삭제: "${instructionText}"`,
+        });
+      }
     } else if (action === 'update_instructions') {
       if (Array.isArray(customInstructions)) {
         updatedInstructions = customInstructions.map((s: string) => s.trim()).filter(Boolean);

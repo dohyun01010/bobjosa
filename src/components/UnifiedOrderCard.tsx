@@ -56,6 +56,77 @@ export default function UnifiedOrderCard({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
 
+  const [directInstructionInput, setDirectInstructionInput] = useState('');
+  const [activeInstructions, setActiveInstructions] = useState<string[]>([]);
+  const [isSubmittingInstruction, setIsSubmittingInstruction] = useState(false);
+
+  React.useEffect(() => {
+    fetch('/api/learning')
+      .then(res => res.json())
+      .then(data => {
+        if (data && Array.isArray(data.customPromptInstructions)) {
+          setActiveInstructions(data.customPromptInstructions);
+        }
+      })
+      .catch(e => console.error('Failed to load learning instructions:', e));
+  }, []);
+
+  const handleDirectLearnInstruction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!directInstructionInput.trim()) return;
+
+    setIsSubmittingInstruction(true);
+    try {
+      const res = await fetch('/api/learning', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_natural_instruction',
+          instruction: directInstructionInput.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.rules && Array.isArray(data.rules.customPromptInstructions)) {
+          setActiveInstructions(data.rules.customPromptInstructions);
+        }
+        setDirectInstructionInput('');
+
+        if (rawChatText.trim()) {
+          handleRunAiAnalysis();
+        }
+      }
+    } catch (err) {
+      console.error('Failed to submit learning instruction:', err);
+    } finally {
+      setIsSubmittingInstruction(false);
+    }
+  };
+
+  const handleDeleteInstruction = async (instructionText: string) => {
+    try {
+      const res = await fetch('/api/learning', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_instruction',
+          instruction: instructionText,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.rules && Array.isArray(data.rules.customPromptInstructions)) {
+          setActiveInstructions(data.rules.customPromptInstructions);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to delete learning instruction:', err);
+    }
+  };
+
+
 
   const formatCleanedRawChatText = (orders: UserOrder[]): string => {
     const blocks: string[] = [];
@@ -381,6 +452,67 @@ export default function UnifiedOrderCard({
           </div>
         </div>
       )}
+
+      {/* 3. Direct AI Natural Language Learning Field (주문 목록 아래 AI 자율 학습 입력 칸) */}
+      <div className="p-4 rounded-[var(--rounded-lg)] bg-gradient-to-r from-[var(--colors-surface-indigo)] to-[#1e1b4b] border border-[var(--colors-magenta)] space-y-3 shadow-xl mt-4">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-display font-extrabold uppercase tracking-wider text-[var(--colors-magenta)] flex items-center gap-2">
+            <span>🧠</span>
+            <span>AI 자율 학습 & 규칙 즉시 교정 필드</span>
+          </h4>
+          <span className="badge-magenta text-[10px]">DIRECT AI TEACHING</span>
+        </div>
+
+        <p className="text-xs text-[var(--colors-muted)] leading-relaxed">
+          AI가 잘 못 알아듣거나 수정을 원할 경우 자연어로 자유롭게 지시하세요.
+          <br />
+          예: <strong className="text-yellow-300">&quot;고국은 고기국수다&quot;</strong>, <strong className="text-green-300">&quot;&apos;잠시만&apos;은 메뉴가 아니다&quot;</strong>, <strong className="text-purple-300">&quot;불싸이는 싸이버거다&quot;</strong>
+        </p>
+
+        <form onSubmit={handleDirectLearnInstruction} className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="text"
+            value={directInstructionInput}
+            onChange={e => setDirectInstructionInput(e.target.value)}
+            placeholder="AI 교정 지시 입력 (예: 고국은 고기국수다 / '승제'는 메뉴가 아니다)"
+            className="discord-input text-xs flex-1 py-2 px-3 bg-[var(--colors-surface-onyx)]"
+          />
+          <button
+            type="submit"
+            disabled={isSubmittingInstruction}
+            className="button-magenta text-xs font-bold py-2 px-4 whitespace-nowrap cursor-pointer flex items-center justify-center gap-1.5 shadow-md hover:scale-102 transition-transform"
+          >
+            <span>🎓 AI 학습 및 재분석</span>
+          </button>
+        </form>
+
+        {/* Active Prompt Instructions List */}
+        {activeInstructions.length > 0 && (
+          <div className="pt-2 border-t border-[var(--colors-hairline)] space-y-2">
+            <div className="text-[11px] font-bold text-gray-300 flex items-center gap-1">
+              <span>📌 적용 중인 자연어 학습 지시 ({activeInstructions.length}개):</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {activeInstructions.map((instr, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--colors-surface-onyx)] border border-purple-500/50 text-[11px] text-purple-200 shadow-sm"
+                >
+                  <span>✨ {instr}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteInstruction(instr)}
+                    className="text-red-400 hover:text-red-300 font-bold ml-1 cursor-pointer"
+                    title="학습 지시 삭제"
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
