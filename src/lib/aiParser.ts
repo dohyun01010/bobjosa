@@ -133,23 +133,19 @@ export async function parseChatWithAi(
   const activeMemberMap = memberMapParam || MEMBER_DEPARTMENT_MAP;
   const learningRules = await fetchLearningRules();
 
-  try {
-    const genAI = new GoogleGenerativeAI(activeKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const aliasInstructionSection = learningRules.learnedAliasMap && Object.keys(learningRules.learnedAliasMap).length > 0
+    ? `\n[CRITICAL LEARNED ALIAS MAPPINGS - HIGH PRIORITY]\nThe user has explicitly taught the following vocabulary mappings. You MUST substitute these aliases with their exact target menu names:\n${JSON.stringify(learningRules.learnedAliasMap, null, 2)}\n`
+    : '';
 
-    const aliasInstructionSection = learningRules.learnedAliasMap && Object.keys(learningRules.learnedAliasMap).length > 0
-      ? `\n[CRITICAL LEARNED ALIAS MAPPINGS - HIGH PRIORITY]\nThe user has explicitly taught the following vocabulary mappings. You MUST substitute these aliases with their exact target menu names:\n${JSON.stringify(learningRules.learnedAliasMap, null, 2)}\n`
-      : '';
+  const fewShotSection = learningRules.fewShotExamples && learningRules.fewShotExamples.length > 0
+    ? `\n[LEARNED FEW-SHOT TRAINING EXAMPLES]\n${learningRules.fewShotExamples.map((ex, idx) => `Example ${idx + 1} (${ex.description}):\nInput: """${ex.inputChat}"""\nExpected Parsing Rule: ${ex.expectedOutput}`).join('\n\n')}\n`
+    : '';
 
-    const fewShotSection = learningRules.fewShotExamples && learningRules.fewShotExamples.length > 0
-      ? `\n[LEARNED FEW-SHOT TRAINING EXAMPLES]\n${learningRules.fewShotExamples.map((ex, idx) => `Example ${idx + 1} (${ex.description}):\nInput: """${ex.inputChat}"""\nExpected Parsing Rule: ${ex.expectedOutput}`).join('\n\n')}\n`
-      : '';
+  const customInstructionsSection = learningRules.customPromptInstructions && learningRules.customPromptInstructions.length > 0
+    ? `\n[USER CUSTOM INSTRUCTIONS]\n${learningRules.customPromptInstructions.map(instr => `- ${instr}`).join('\n')}\n`
+    : '';
 
-    const customInstructionsSection = learningRules.customPromptInstructions && learningRules.customPromptInstructions.length > 0
-      ? `\n[USER CUSTOM INSTRUCTIONS]\n${learningRules.customPromptInstructions.map(instr => `- ${instr}`).join('\n')}\n`
-      : '';
-
-    const promptStep1 = `
+  const promptStep1 = `
 You are an expert KakaoTalk meal order aggregation parser.
 Parse the raw KakaoTalk chat logs into a clean structured JSON.
 
@@ -173,19 +169,28 @@ ${rawChatText}
 """
 `;
 
-    const responseStep1 = await model.generateContent(promptStep1);
-    const textStep1 = responseStep1.response.text();
-    const jsonMatch1 = textStep1.match(/\{[\s\S]*\}/);
-    let parsed1: AiParseResult | null = null;
-    if (jsonMatch1) {
-      parsed1 = JSON.parse(jsonMatch1[0]) as AiParseResult;
-    }
+  // Model fallback chain for maximum performance & accuracy (Gemini 2.5 Flash -> Gemini 2.5 Pro -> Gemini 1.5 Flash)
+  const candidateModels = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-flash'];
 
-    if (parsed1 && parsed1.userOrders && parsed1.userOrders.length > 0) {
-      return refineAiParsedResult(parsed1, menuItems, activeMemberMap, learningRules);
+  for (const modelName of candidateModels) {
+    try {
+      const genAI = new GoogleGenerativeAI(activeKey);
+      const model = genAI.getGenerativeModel({ model: modelName });
+
+      const responseStep1 = await model.generateContent(promptStep1);
+      const textStep1 = responseStep1.response.text();
+      const jsonMatch1 = textStep1.match(/\{[\s\S]*\}/);
+      let parsed1: AiParseResult | null = null;
+      if (jsonMatch1) {
+        parsed1 = JSON.parse(jsonMatch1[0]) as AiParseResult;
+      }
+
+      if (parsed1 && parsed1.userOrders && parsed1.userOrders.length > 0) {
+        return refineAiParsedResult(parsed1, menuItems, activeMemberMap, learningRules);
+      }
+    } catch (e) {
+      console.warn(`Model ${modelName} attempt notice:`, e);
     }
-  } catch (e) {
-    console.warn('AI Parsing fallback notice:', e);
   }
 
   return fallbackSmartParse(rawChatText, menuItems, activeMemberMap, learningRules);
