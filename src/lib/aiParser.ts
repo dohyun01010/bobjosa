@@ -319,6 +319,34 @@ function refineAiParsedResult(
   };
 }
 
+function extractRulesFromLearning(learningRules?: LearningRules): {
+  aliasMap: Record<string, string>;
+  excludedWords: string[];
+} {
+  const aliasMap: Record<string, string> = { ...(learningRules?.learnedAliasMap || {}) };
+  const excludedWords: string[] = [];
+
+  if (learningRules?.customPromptInstructions) {
+    for (const instr of learningRules.customPromptInstructions) {
+      const exclMatch = instr.match(/['"]?([^'"]+?)['"]?\s*(?:은|는)?\s*(?:메뉴가\s*아니다|잡담|제외|불가)/);
+      if (exclMatch) {
+        excludedWords.push(exclMatch[1].trim());
+      }
+
+      const aliasMatch = instr.match(/['"]?([^'"]+?)['"]?\s*(?:은|는|->|=>|=|으로)\s*['"]?([^'"]+?)['"]?(?:다|\.|$)/);
+      if (aliasMatch) {
+        const src = aliasMatch[1].trim();
+        const tgt = aliasMatch[2].replace(/(?:이다|다|로)$/, '').trim();
+        if (src && tgt && src !== tgt) {
+          aliasMap[src] = tgt;
+        }
+      }
+    }
+  }
+
+  return { aliasMap, excludedWords };
+}
+
 export function fallbackSmartParse(
   rawText: string,
   menuItems: MenuItem[],
@@ -326,12 +354,16 @@ export function fallbackSmartParse(
   learningRules?: LearningRules
 ): AiParseResult {
   const activeLearning = learningRules || cachedLearningRules;
+  const { aliasMap, excludedWords } = extractRulesFromLearning(activeLearning);
+
   const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
   const userMap = new Map<string, { userName: string; dept: DepartmentName; items: ParsedOrderItem[]; rawLines: string[] }>();
 
   let currentUserName = '';
 
   for (const line of lines) {
+    if (line.startsWith('---') || line.startsWith('===')) continue;
+
     const matchHeader = line.match(/(?:오전|오후)?\s*\d+:\d+\s+([가-힣a-zA-Z0-9]+)(?:\s+(.*))?/);
 
     if (matchHeader) {
@@ -352,13 +384,19 @@ export function fallbackSmartParse(
       }
 
       if (restContent && !isChatterLine(restContent, memberMap)) {
-        parseLineToItems(restContent, userMap.get(currentUserName)!.items, menuItems, activeLearning, memberMap);
+        parseLineToItems(restContent, userMap.get(currentUserName)!.items, menuItems, aliasMap, excludedWords, memberMap);
+      }
+    } else if (isMemberName(line, memberMap) || (line.length <= 10 && !/\d/.test(line) && !isChatterLine(line, memberMap))) {
+      currentUserName = line.replace(/^[\[\s]+|[\]\s]+$/g, '').trim();
+      if (!userMap.has(currentUserName)) {
+        const dept = memberMap[currentUserName] || resolveDepartmentName(currentUserName, line, memberMap);
+        userMap.set(currentUserName, { userName: currentUserName, dept, items: [], rawLines: [line] });
       }
     } else if (currentUserName && userMap.has(currentUserName)) {
       if (!isChatterLine(line, memberMap)) {
         const currentUserData = userMap.get(currentUserName)!;
         currentUserData.rawLines.push(line);
-        parseLineToItems(line, currentUserData.items, menuItems, activeLearning, memberMap);
+        parseLineToItems(line, currentUserData.items, menuItems, aliasMap, excludedWords, memberMap);
       }
     }
   }
@@ -386,7 +424,8 @@ function parseLineToItems(
   lineText: string,
   targetItemList: ParsedOrderItem[],
   menuItems: MenuItem[],
-  learningRules: LearningRules,
+  aliasMap: Record<string, string>,
+  excludedWords: string[],
   memberMap?: Record<string, DepartmentName>
 ) {
   let text = lineText.replace(/@\S+/g, '').trim();
@@ -413,10 +452,14 @@ function parseLineToItems(
       continue;
     }
 
+    if (excludedWords.some(w => w && (foodName.includes(w) || cleanMenuText(foodName).includes(w)))) {
+      continue;
+    }
+
     hasMatches = true;
 
-    if (learningRules.learnedAliasMap[foodName]) {
-      foodName = learningRules.learnedAliasMap[foodName];
+    if (aliasMap[foodName]) {
+      foodName = aliasMap[foodName];
     }
 
     const cleanedFoodName = cleanMenuText(foodName);
@@ -468,10 +511,11 @@ function parseLineToItems(
 
   if (!hasMatches && text && !isChatterLine(text, memberMap) && !DEPT_KEYWORDS.includes(text) && !/^[0-9]+$/.test(text)) {
     if (memberMap && isMemberName(text, memberMap)) return;
+    if (excludedWords.some(w => w && (text.includes(w) || cleanMenuText(text).includes(w)))) return;
 
     let foodName = text;
-    if (learningRules.learnedAliasMap[foodName]) {
-      foodName = learningRules.learnedAliasMap[foodName];
+    if (aliasMap[foodName]) {
+      foodName = aliasMap[foodName];
     }
 
     const cleanedFoodName = cleanMenuText(foodName);
