@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Restaurant, MenuItem } from '../types';
-import { setLocalCachedRestaurants } from '../lib/dbService';
 
 interface MenuManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
   restaurants: Restaurant[];
-  onSaveRestaurants: (newRestaurants: Restaurant[]) => void;
+  onSaveRestaurants: (restaurants: Restaurant[]) => void;
 }
 
 export default function MenuManagementModal({
@@ -17,356 +16,266 @@ export default function MenuManagementModal({
   restaurants,
   onSaveRestaurants,
 }: MenuManagementModalProps) {
-  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string>('');
+  const [localRestaurants, setLocalRestaurants] = useState<Restaurant[]>(restaurants);
+  const [selectedRestId, setSelectedRestId] = useState<string>(
+    restaurants[0]?.id || ''
+  );
+
+  const [newRestName, setNewRestName] = useState('');
   const [newMenuName, setNewMenuName] = useState('');
-  const [newMenuAliases, setNewMenuAliases] = useState('');
-
-  const [newRestaurantName, setNewRestaurantName] = useState('');
-  const [showAddRestaurant, setShowAddRestaurant] = useState(false);
-
-  useEffect(() => {
-    if (restaurants.length > 0) {
-      if (!selectedRestaurantId || !restaurants.some(r => r.id === selectedRestaurantId)) {
-        setSelectedRestaurantId(restaurants[0].id);
-      }
-    }
-  }, [restaurants, selectedRestaurantId]);
+  const [newMenuAliasInput, setNewMenuAliasInput] = useState('');
 
   if (!isOpen) return null;
 
-  const currentRestaurant = restaurants.find(r => r.id === selectedRestaurantId);
+  const currentRest = localRestaurants.find(r => r.id === selectedRestId);
 
-  const commitUpdate = (updatedRestaurants: Restaurant[]) => {
-    setLocalCachedRestaurants(updatedRestaurants);
-    onSaveRestaurants(updatedRestaurants);
+  const handleAddRestaurant = () => {
+    if (!newRestName.trim()) return;
+    const newRest: Restaurant = {
+      id: `rest-${Date.now()}`,
+      name: newRestName.trim(),
+      menuItems: [],
+    };
+    setLocalRestaurants([...localRestaurants, newRest]);
+    setSelectedRestId(newRest.id);
+    setNewRestName('');
+  };
+
+  const handleDeleteRestaurant = (restId: string) => {
+    if (localRestaurants.length <= 1) {
+      alert('최소 하나의 식당은 존재해야 합니다.');
+      return;
+    }
+    if (!confirm('이 식당과 등록된 모든 메뉴를 삭제하시겠습니까?')) return;
+    const updated = localRestaurants.filter(r => r.id !== restId);
+    setLocalRestaurants(updated);
+    if (selectedRestId === restId) {
+      setSelectedRestId(updated[0]?.id || '');
+    }
   };
 
   const handleAddMenuItem = () => {
-    if (!selectedRestaurantId || !newMenuName.trim()) return;
-
-    const cleanName = newMenuName.trim();
-    const aliases = newMenuAliases
+    if (!newMenuName.trim() || !selectedRestId) return;
+    const aliases = newMenuAliasInput
       .split(',')
-      .map(a => a.trim())
-      .filter(a => a.length > 0);
+      .map(s => s.trim())
+      .filter(Boolean);
 
-    const newMenuItem: MenuItem = {
+    const newItem: MenuItem = {
       id: `menu-${Date.now()}`,
-      name: cleanName,
+      name: newMenuName.trim(),
       aliases,
     };
 
-    const updated = restaurants.map(r => {
-      if (r.id !== selectedRestaurantId) return r;
-      const exists = r.menuItems.some(
-        m => m.name.trim().toLowerCase() === cleanName.toLowerCase()
-      );
-      if (exists) return r;
+    setLocalRestaurants(
+      localRestaurants.map(r => {
+        if (r.id !== selectedRestId) return r;
+        return {
+          ...r,
+          menuItems: [...r.menuItems, newItem],
+        };
+      })
+    );
 
-      return {
-        ...r,
-        menuItems: [...r.menuItems, newMenuItem],
-      };
-    });
-
-    commitUpdate(updated);
     setNewMenuName('');
-    setNewMenuAliases('');
+    setNewMenuAliasInput('');
   };
 
   const handleDeleteMenuItem = (menuId: string) => {
-    const updated = restaurants.map(r => {
-      if (r.id !== selectedRestaurantId) return r;
-      return {
-        ...r,
-        menuItems: r.menuItems.filter(m => m.id !== menuId),
-      };
-    });
-    commitUpdate(updated);
+    setLocalRestaurants(
+      localRestaurants.map(r => {
+        if (r.id !== selectedRestId) return r;
+        return {
+          ...r,
+          menuItems: r.menuItems.filter(m => m.id !== menuId),
+        };
+      })
+    );
   };
 
-  const handleAddAliasToItem = (menuId: string, alias: string) => {
-    if (!alias.trim()) return;
-    const updated = restaurants.map(r => {
-      if (r.id !== selectedRestaurantId) return r;
-      return {
-        ...r,
-        menuItems: r.menuItems.map(m => {
-          if (m.id !== menuId) return m;
-          if (m.aliases.includes(alias.trim())) return m;
-          return { ...m, aliases: [...m.aliases, alias.trim()] };
-        }),
-      };
-    });
-    commitUpdate(updated);
-  };
-
-  const handleDeleteAlias = (menuId: string, aliasToDelete: string) => {
-    const updated = restaurants.map(r => {
-      if (r.id !== selectedRestaurantId) return r;
-      return {
-        ...r,
-        menuItems: r.menuItems.map(m => {
-          if (m.id !== menuId) return m;
-          return {
-            ...m,
-            aliases: m.aliases.filter(a => a !== aliasToDelete),
-          };
-        }),
-      };
-    });
-    commitUpdate(updated);
-  };
-
-  const handleAddRestaurant = () => {
-    if (!newRestaurantName.trim()) return;
-    const newRest: Restaurant = {
-      id: `rest-${Date.now()}`,
-      name: newRestaurantName.trim(),
-      menuItems: [],
-    };
-    const updated = [...restaurants, newRest];
-    setSelectedRestaurantId(newRest.id);
-    commitUpdate(updated);
-    setNewRestaurantName('');
-    setShowAddRestaurant(false);
+  const handleSaveAndClose = () => {
+    onSaveRestaurants(localRestaurants);
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="glass-card w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-border-primary">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-border-primary/50 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+      <div className="bg-[#313338] border border-[#1f2023] w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Discord Modal Header */}
+        <div className="px-6 py-4 bg-[#2b2d31] border-b border-[#1f2023] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xl">⚙️</span>
-            <h2 className="text-base font-bold text-text-primary">식당 및 메뉴 관리 (전역 DB 연동)</h2>
+            <div>
+              <h2 className="text-base font-extrabold text-[var(--text-primary)] uppercase tracking-wider">
+                서버 메뉴 & 식당 관리 DB
+              </h2>
+              <p className="text-xs text-[var(--text-muted)] font-medium">
+                등록된 식당과 메뉴를 실시간으로 수정 및 추가합니다.
+              </p>
+            </div>
           </div>
           <button
-            type="button"
             onClick={onClose}
-            className="text-text-muted hover:text-text-primary text-sm p-1 rounded-md cursor-pointer"
+            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-2 text-xl font-bold transition-colors cursor-pointer"
           >
             ✕
           </button>
         </div>
 
-        {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
-          {/* Restaurant Selector & Add Restaurant */}
+        {/* Discord Modal Content */}
+        <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-[#313338]">
+          {/* 1. Restaurant Tabs Section */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                관리할 식당 선택
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowAddRestaurant(!showAddRestaurant)}
-                className="text-xs text-accent-primary hover:underline flex items-center gap-1 cursor-pointer font-medium"
-              >
-                <span>➕</span> {showAddRestaurant ? '접기' : '새 식당 추가'}
-              </button>
-            </div>
-
-            {showAddRestaurant && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-bg-input border border-border-primary">
-                <input
-                  type="text"
-                  placeholder="새 식당 이름 (예: 신전떡볶이)"
-                  value={newRestaurantName}
-                  onChange={e => setNewRestaurantName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAddRestaurant()}
-                  className="input-field text-xs py-1.5 flex-1"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddRestaurant}
-                  className="btn-primary text-xs py-1.5 px-3 whitespace-nowrap cursor-pointer"
-                >
-                  식당 등록
-                </button>
-              </div>
-            )}
-
+            <label className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-muted)] block">
+              식당 목록 (탭 선택)
+            </label>
             <div className="flex flex-wrap gap-2">
-              {restaurants.map(r => {
-                const isSelected = selectedRestaurantId === r.id;
+              {localRestaurants.map(r => {
+                const isSelected = r.id === selectedRestId;
                 return (
-                  <button
+                  <div
                     key={r.id}
-                    type="button"
-                    onClick={() => setSelectedRestaurantId(r.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded font-bold text-xs cursor-pointer transition-all ${
                       isSelected
-                        ? 'bg-blue-600 text-white shadow-md border-2 border-blue-700'
-                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-300'
+                        ? 'bg-[var(--primary-blurple)] text-white shadow-md'
+                        : 'bg-[#2b2d31] text-[var(--text-secondary)] hover:bg-[#383a40] hover:text-white border border-[#1f2023]'
                     }`}
+                    onClick={() => setSelectedRestId(r.id)}
                   >
-                    {r.name} ({r.menuItems.length})
-                  </button>
+                    <span>🏪 {r.name}</span>
+                    <span className="text-[10px] opacity-80">({r.menuItems.length})</span>
+                    {isSelected && (
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleDeleteRestaurant(r.id);
+                        }}
+                        className="ml-1 hover:text-red-300 font-bold"
+                        title="식당 삭제"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
+
+            {/* Add New Restaurant */}
+            <div className="flex gap-2 pt-2">
+              <input
+                type="text"
+                value={newRestName}
+                onChange={e => setNewRestName(e.target.value)}
+                placeholder="새 식당 이름 입력..."
+                className="discord-input text-xs flex-1"
+              />
+              <button
+                onClick={handleAddRestaurant}
+                className="btn-discord-blurple text-xs py-2 px-4 whitespace-nowrap font-bold"
+              >
+                + 식당 추가
+              </button>
+            </div>
           </div>
 
-          {currentRestaurant && (
-            <div className="space-y-4 pt-2 border-t border-border-primary/40">
-              {/* Add Menu Form */}
-              <div className="p-4 rounded-xl bg-bg-input/60 border border-border-primary/60 space-y-3">
-                <h4 className="text-xs font-bold text-text-primary flex items-center gap-1.5">
-                  <span>➕</span> &ldquo;{currentRestaurant.name}&rdquo;에 새 메뉴 추가
+          {/* 2. Menu Items Section */}
+          {currentRest && (
+            <div className="pt-4 border-t border-[#1f2023] space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-primary)]">
+                  [{currentRest.name}] 메뉴 및 별칭 목록 ({currentRest.menuItems.length}개)
+                </h3>
+              </div>
+
+              {/* Add New Menu Item */}
+              <div className="p-4 rounded-xl bg-[#2b2d31] border border-[#1f2023] space-y-3">
+                <h4 className="text-xs font-bold text-[var(--text-primary)]">
+                  + 신규 메뉴 추가
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input
                     type="text"
-                    placeholder="메뉴 이름 (예: 치킨마요)"
                     value={newMenuName}
                     onChange={e => setNewMenuName(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleAddMenuItem()}
-                    className="sm:col-span-6 input-field text-xs py-2"
+                    placeholder="메뉴명 (예: 돼지국밥)"
+                    className="discord-input text-xs"
                   />
                   <input
                     type="text"
-                    placeholder="별칭/약어 (쉼표 구분: 치마, 치킨마요도시락)"
-                    value={newMenuAliases}
-                    onChange={e => setNewMenuAliases(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleAddMenuItem()}
-                    className="sm:col-span-4 input-field text-xs py-2"
+                    value={newMenuAliasInput}
+                    onChange={e => setNewMenuAliasInput(e.target.value)}
+                    placeholder="별칭 쉼표 구분 (예: 국밥, 돼지 국밥)"
+                    className="discord-input text-xs"
                   />
+                </div>
+                <div className="flex justify-end">
                   <button
-                    type="button"
                     onClick={handleAddMenuItem}
-                    className="sm:col-span-2 btn-primary text-xs py-2 whitespace-nowrap font-semibold cursor-pointer active:scale-95"
+                    className="btn-discord-green text-xs py-2 px-4 font-bold"
                   >
-                    추가하기
+                    + 메뉴 등록
                   </button>
                 </div>
               </div>
 
-              {/* Existing Menu Items List */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-text-secondary">
-                    등록된 메뉴 목록 ({currentRestaurant.menuItems.length}개)
-                  </h4>
-                </div>
+              {/* Registered Menu List */}
+              <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+                {currentRest.menuItems.length === 0 ? (
+                  <p className="text-xs text-[var(--text-muted)] py-4 text-center">
+                    등록된 메뉴가 없습니다.
+                  </p>
+                ) : (
+                  currentRest.menuItems.map(menu => (
+                    <div
+                      key={menu.id}
+                      className="p-3 rounded-lg bg-[#2b2d31] border border-[#1f2023] flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <span className="font-bold text-[var(--text-primary)] text-xs">{menu.name}</span>
+                        {menu.aliases.length > 0 && (
+                          <div className="flex gap-1 flex-wrap mt-1">
+                            {menu.aliases.map((alias, idx) => (
+                              <span
+                                key={idx}
+                                className="badge-discord-blurple text-[10px] py-0 px-2 font-mono"
+                              >
+                                {alias}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
-                <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-                  {currentRestaurant.menuItems.length === 0 ? (
-                    <p className="text-xs text-text-muted py-4 text-center">
-                      등록된 메뉴가 없습니다. 위에서 메뉴를 추가하세요.
-                    </p>
-                  ) : (
-                    currentRestaurant.menuItems.map(item => (
-                      <MenuItemRow
-                        key={item.id}
-                        item={item}
-                        onDelete={() => handleDeleteMenuItem(item.id)}
-                        onAddAlias={alias => handleAddAliasToItem(item.id, alias)}
-                        onDeleteAlias={alias => handleDeleteAlias(item.id, alias)}
-                      />
-                    ))
-                  )}
-                </div>
+                      <button
+                        onClick={() => handleDeleteMenuItem(menu.id)}
+                        className="btn-discord-danger text-[11px] h-7 py-0 px-2.5 font-bold"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-border-primary/50 flex justify-end bg-bg-card">
+        {/* Discord Modal Footer */}
+        <div className="px-6 py-4 bg-[#2b2d31] border-t border-[#1f2023] flex items-center justify-end gap-3">
           <button
-            type="button"
             onClick={onClose}
-            className="btn-primary px-6 py-2 text-xs font-semibold cursor-pointer"
+            className="btn-discord-secondary text-xs py-2 px-4 font-bold"
           >
-            완료 및 닫기
+            취소
+          </button>
+          <button
+            onClick={handleSaveAndClose}
+            className="btn-discord-blurple text-xs py-2 px-5 font-bold"
+          >
+            변경사항 저장 & 적용
           </button>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function MenuItemRow({
-  item,
-  onDelete,
-  onAddAlias,
-  onDeleteAlias,
-}: {
-  item: MenuItem;
-  onDelete: () => void;
-  onAddAlias: (alias: string) => void;
-  onDeleteAlias: (alias: string) => void;
-}) {
-  const [newAlias, setNewAlias] = useState('');
-  const [showAddAlias, setShowAddAlias] = useState(false);
-
-  const handleAdd = () => {
-    if (!newAlias.trim()) return;
-    onAddAlias(newAlias.trim());
-    setNewAlias('');
-    setShowAddAlias(false);
-  };
-
-  return (
-    <div className="p-3 rounded-lg bg-bg-card border border-border-primary space-y-2 text-xs">
-      <div className="flex items-center justify-between">
-        <span className="font-bold text-text-primary text-sm">{item.name}</span>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="text-text-muted hover:text-accent-error text-xs px-2 py-0.5 rounded hover:bg-accent-error/10 cursor-pointer"
-        >
-          삭제 ✕
-        </button>
-      </div>
-
-      {/* Aliases */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-[11px] text-text-muted">별칭:</span>
-        {item.aliases.map((alias, idx) => (
-          <span
-            key={idx}
-            className="px-2 py-0.5 rounded bg-bg-input border border-border-primary/60 text-text-secondary text-[11px] flex items-center gap-1"
-          >
-            {alias}
-            <button
-              type="button"
-              onClick={() => onDeleteAlias(alias)}
-              className="text-text-muted hover:text-accent-error text-[10px] cursor-pointer"
-            >
-              ✕
-            </button>
-          </span>
-        ))}
-
-        {showAddAlias ? (
-          <div className="flex items-center gap-1 inline-flex">
-            <input
-              type="text"
-              placeholder="약어 입력"
-              value={newAlias}
-              onChange={e => setNewAlias(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAdd()}
-              className="input-field text-[11px] py-0.5 px-2 w-24"
-              autoFocus
-            />
-            <button type="button" onClick={handleAdd} className="btn-primary text-[10px] py-0.5 px-2 cursor-pointer">
-              등록
-            </button>
-            <button type="button" onClick={() => setShowAddAlias(false)} className="btn-secondary text-[10px] py-0.5 px-1 cursor-pointer">
-              취소
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowAddAlias(true)}
-            className="text-[11px] text-accent-primary hover:underline cursor-pointer"
-          >
-            + 별칭 추가
-          </button>
-        )}
       </div>
     </div>
   );

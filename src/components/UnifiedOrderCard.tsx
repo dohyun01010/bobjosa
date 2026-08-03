@@ -188,37 +188,38 @@ export default function UnifiedOrderCard({
   };
 
   return (
-    <div className="cursor-card p-6 space-y-6 w-full">
-      {/* 1. Editor Input Pane */}
+    <div className="discord-card p-6 space-y-6 w-full">
+      {/* 1. Discord Chat Input Pane */}
       <div className="space-y-3 w-full">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-            KAKAOTALK ORDER INPUT
+          <label className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+            <span>💬</span> # 주문-메시지-채널
           </label>
         </div>
 
-        <div className="cursor-pane p-1">
-          <textarea
-            value={rawChatText}
-            onChange={e => onRawTextChange(e.target.value)}
-            placeholder="카카오톡 대화방의 주문 메시지 전체를 복사해서 붙여넣으세요..."
-            className="w-full min-h-[360px] p-4 text-xs font-mono bg-transparent border-none focus:outline-none resize-y block text-[var(--ink)] leading-relaxed"
-            style={{ width: '100%' }}
-          />
-        </div>
+        <textarea
+          value={rawChatText}
+          onChange={e => onRawTextChange(e.target.value)}
+          placeholder="#주문-채널에 카카오톡 대화 전문을 붙여넣으세요..."
+          className="discord-input w-full min-h-[360px] p-4 text-xs font-mono leading-relaxed resize-y block text-[var(--text-primary)]"
+          style={{ width: '100%' }}
+        />
 
         <button
           onClick={handleRunAiAnalysis}
           disabled={isAnalyzing}
-          className="btn-cursor-primary w-full text-sm font-medium cursor-pointer disabled:opacity-50"
+          className="btn-discord-blurple w-full text-sm font-bold cursor-pointer disabled:opacity-50"
         >
           {isAnalyzing ? (
-            <span className="flex items-center gap-2">
-              <span className="pill-thinking animate-pulse">PARSING...</span>
-              <span>AI 분석 실행 중</span>
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span>AI 서버 분석 중...</span>
             </span>
           ) : (
-            'AI 분석 실행'
+            '🚀 AI 분석 실행'
           )}
         </button>
       </div>
@@ -242,16 +243,16 @@ export default function UnifiedOrderCard({
         />
       )}
 
-      {/* 3. Analysis Results List */}
+      {/* 3. Analysis Results List (Discord User List Style) */}
       {userOrders.length > 0 && (
-        <div className="pt-6 border-t border-[var(--hairline)] space-y-4 w-full">
+        <div className="pt-6 border-t border-[var(--border-primary)] space-y-4 w-full">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-              ORDERS PARSED ({userOrders.length} MEMBERS)
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-muted)]">
+              멤버별 파싱 결과 — {userOrders.length}명
             </h3>
             {isVerified && (
-              <span className="pill-done text-[10px]">
-                VERIFIED
+              <span className="badge-discord-green text-[10px]">
+                SELF-VERIFIED
               </span>
             )}
           </div>
@@ -260,39 +261,40 @@ export default function UnifiedOrderCard({
             {userOrders.map(user => (
               <div
                 key={user.id}
-                className="p-4 rounded-xl cursor-pane space-y-3"
+                className="p-4 rounded-xl discord-card-inner space-y-3"
               >
-                <div className="flex items-center justify-between pb-2 border-b border-[var(--hairline-soft)]">
+                <div className="flex items-center justify-between pb-2 border-b border-[var(--border-primary)]">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs text-[var(--ink)]">{user.userName}</span>
-                    <span className="pill-grep text-[10px]">{user.departmentName}</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-[var(--discord-green)] inline-block"></span>
+                    <span className="font-bold text-sm text-[var(--text-primary)]">{user.userName}</span>
+                    <span className="badge-discord-blurple text-[10px]">{user.departmentName}</span>
                   </div>
 
                   <button
                     onClick={() => handleDeleteUserOrder(user.id)}
-                    className="text-[var(--muted)] hover:text-[var(--semantic-error)] text-xs transition-colors cursor-pointer font-mono"
+                    className="text-[var(--text-muted)] hover:text-[var(--discord-red)] text-xs font-bold transition-colors cursor-pointer"
                     title="주문 삭제"
                   >
-                    delete
+                    삭제 ✕
                   </button>
                 </div>
 
                 <div className="space-y-2 w-full">
                   {user.items.map(item => (
                     <div key={item.id} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs py-2 px-3 rounded-lg bg-[var(--surface-card)] border border-[var(--hairline)] w-full">
+                      <div className="flex items-center justify-between text-xs py-2 px-3 rounded bg-[#1e1f22] border border-[#111214] w-full">
                         <div className="flex items-center gap-2">
-                          <span className="text-[var(--ink)] font-mono text-xs">
+                          <span className="text-[var(--text-primary)] font-mono text-xs font-semibold">
                             {item.matchedMenuName || item.rawText}
                           </span>
                           {item.status === 'ambiguous' && (
-                            <span className="pill-thinking text-[10px]">
-                              OPTION NEEDED
+                            <span className="badge-discord-yellow text-[10px]">
+                              옵션 확인 필요
                             </span>
                           )}
                           {item.status === 'uncertain' && (
-                            <span className="pill-read text-[10px]">
-                              CHECK NEEDED
+                            <span className="badge-discord-yellow text-[10px]">
+                              메뉴 확인 필요
                             </span>
                           )}
                         </div>
@@ -300,26 +302,26 @@ export default function UnifiedOrderCard({
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleEditItemQuantity(user.id, item.id, -1)}
-                            className="w-5 h-5 rounded bg-[var(--canvas)] flex items-center justify-center font-bold text-[var(--ink)] border border-[var(--hairline)] hover:bg-[var(--surface-strong)] text-xs cursor-pointer"
+                            className="w-6 h-6 rounded bg-[var(--surface-strong)] flex items-center justify-center font-bold text-white hover:bg-[#4e5058] text-xs cursor-pointer"
                           >
                             -
                           </button>
-                          <span className="font-bold text-[var(--ink)] tabular-nums font-mono text-xs">
+                          <span className="font-bold text-[var(--text-primary)] tabular-nums font-mono text-xs px-1">
                             {item.quantity}
                           </span>
                           <button
                             onClick={() => handleEditItemQuantity(user.id, item.id, +1)}
-                            className="w-5 h-5 rounded bg-[var(--canvas)] flex items-center justify-center font-bold text-[var(--ink)] border border-[var(--hairline)] hover:bg-[var(--surface-strong)] text-xs cursor-pointer"
+                            className="w-6 h-6 rounded bg-[var(--surface-strong)] flex items-center justify-center font-bold text-white hover:bg-[#4e5058] text-xs cursor-pointer"
                           >
                             +
                           </button>
                         </div>
                       </div>
 
-                      {/* Ambiguous Candidates (Burger Single vs Set) */}
+                      {/* Ambiguous Candidates */}
                       {item.status === 'ambiguous' && item.candidates && item.candidates.length > 0 && (
-                        <div className="p-3 rounded-lg bg-[var(--canvas-soft)] border border-[var(--timeline-thinking)] flex items-center justify-between text-xs gap-2">
-                          <span className="text-[var(--ink)] font-medium text-xs">
+                        <div className="p-3 rounded bg-[#2b2d31] border border-[var(--discord-yellow)] flex items-center justify-between text-xs gap-2">
+                          <span className="text-[var(--discord-yellow)] font-bold text-xs">
                             &ldquo;{item.rawText}&rdquo; 옵션 선택:
                           </span>
                           <div className="flex items-center gap-1.5">
@@ -329,7 +331,7 @@ export default function UnifiedOrderCard({
                                 onClick={() =>
                                   handleSelectAmbiguousCandidate(user.id, item.id, cand.menuName)
                                 }
-                                className="btn-cursor-ink text-xs h-7 py-1 px-3"
+                                className="btn-discord-blurple text-xs h-7 py-1 px-3"
                               >
                                 {cand.menuName}
                               </button>
@@ -340,20 +342,20 @@ export default function UnifiedOrderCard({
 
                       {/* Uncertain Item Card */}
                       {item.status === 'uncertain' && (
-                        <div className="p-3 rounded-lg bg-[var(--canvas-soft)] border border-[var(--timeline-read)] flex items-center justify-between text-xs gap-2">
-                          <span className="text-[var(--ink)] font-medium text-xs">
+                        <div className="p-3 rounded bg-[#2b2d31] border border-[var(--discord-yellow)] flex items-center justify-between text-xs gap-2">
+                          <span className="text-[var(--discord-yellow)] font-bold text-xs">
                             &ldquo;{item.rawText}&rdquo; 메뉴인가요?
                           </span>
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleConfirmUncertainItem(user.id, item.id)}
-                              className="btn-cursor-primary text-xs h-7 py-1 px-3"
+                              className="btn-discord-green text-xs h-7 py-1 px-3"
                             >
                               메뉴 확정
                             </button>
                             <button
                               onClick={() => handleRejectUncertainItem(user.id, item.id)}
-                              className="btn-cursor-secondary text-xs h-7 py-1 px-3"
+                              className="btn-discord-danger text-xs h-7 py-1 px-3"
                             >
                               제외
                             </button>

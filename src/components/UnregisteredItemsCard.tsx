@@ -21,11 +21,11 @@ export default function UnregisteredItemsCard({
   if (unregisteredItems.length === 0) return null;
 
   return (
-    <div className="p-4 rounded-xl bg-[var(--canvas-soft)] border border-[var(--timeline-read)] space-y-3">
+    <div className="p-4 rounded-xl bg-[#2b2d31] border border-[var(--primary-blurple)] space-y-3">
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--ink)] flex items-center gap-2">
-          <span className="pill-read">NEW MENUS</span>
-          <span>미등록 신규 메뉴 제안</span>
+        <h4 className="text-xs font-extrabold uppercase tracking-wider text-[var(--primary-blurple)] flex items-center gap-2">
+          <span>✨</span>
+          <span>미등록 신규 메뉴 DB 추가 제안</span>
         </h4>
       </div>
 
@@ -33,16 +33,16 @@ export default function UnregisteredItemsCard({
         {unregisteredItems.map(item => (
           <div
             key={item.id}
-            className="p-3 rounded-lg bg-[var(--surface-card)] border border-[var(--hairline)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+            className="p-3 rounded bg-[#313338] border border-[#1e1f22] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
           >
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-[var(--ink)] text-xs">&ldquo;{item.rawText}&rdquo;</span>
+              <span className="font-bold text-[var(--text-primary)] text-xs">&ldquo;{item.rawText}&rdquo;</span>
             </div>
 
             <div className="flex items-center gap-1.5 flex-wrap">
               <button
                 onClick={() => onAddToDb(item.suggestedName, item.suggestedAliases)}
-                className="btn-cursor-primary text-[11px] h-7 py-1 px-2.5"
+                className="btn-discord-green text-[11px] h-7 py-1 px-2.5 font-bold"
               >
                 + 신규 메뉴 추가
               </button>
@@ -55,7 +55,7 @@ export default function UnregisteredItemsCard({
                       onDismiss(item.id);
                     }
                   }}
-                  className="cursor-select text-[11px] h-7 py-0 px-2"
+                  className="discord-select text-[11px] h-7 py-0 px-2"
                   defaultValue=""
                 >
                   <option value="" disabled>
@@ -71,7 +71,7 @@ export default function UnregisteredItemsCard({
 
               <button
                 onClick={() => onDismiss(item.id)}
-                className="text-[var(--muted)] hover:text-[var(--ink)] text-[11px] ml-1"
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-[11px] ml-1 font-bold"
               >
                 무시
               </button>
