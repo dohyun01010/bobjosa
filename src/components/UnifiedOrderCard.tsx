@@ -152,8 +152,20 @@ export default function UnifiedOrderCard({
     return blocks.join('\n--------------------\n');
   };
 
+  const originalRawChatRef = React.useRef<string>('');
+
+  React.useEffect(() => {
+    if (rawChatText && (rawChatText.includes(':') || rawChatText.includes('오전') || rawChatText.includes('오후'))) {
+      originalRawChatRef.current = rawChatText;
+    }
+  }, [rawChatText]);
+
   const handleRunAiAnalysis = async () => {
-    if (!rawChatText.trim()) {
+    const textToParse = (originalRawChatRef.current && originalRawChatRef.current.trim())
+      ? originalRawChatRef.current
+      : rawChatText;
+
+    if (!textToParse.trim()) {
       alert('카카오톡 주문 대화 내용을 입력해 주세요.');
       return;
     }
@@ -162,7 +174,7 @@ export default function UnifiedOrderCard({
     setIsVerified(false);
     try {
       const result = await parseChatWithAi(
-        rawChatText,
+        textToParse,
         menuItems,
         apiKey,
         memberMap

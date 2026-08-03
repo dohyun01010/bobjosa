@@ -17,7 +17,7 @@ let cachedLearningRules: LearningRules = {
 
 export async function fetchLearningRules(): Promise<LearningRules> {
   try {
-    const res = await fetch('/api/learning');
+    const res = await fetch('/api/learning', { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
       cachedLearningRules = data;
@@ -198,6 +198,29 @@ function refineAiParsedResult(
   memberMap: Record<string, DepartmentName>,
   learningRules: LearningRules
 ): AiParseResult {
+  const excludedWords: string[] = [];
+  const instructionAliasMap: Record<string, string> = { ...(learningRules.learnedAliasMap || {}) };
+
+  if (learningRules.customPromptInstructions) {
+    for (const instr of learningRules.customPromptInstructions) {
+      // 1. Exclusion pattern: "X는 메뉴가 아니다", "X는 잡담이다", "X 제외"
+      const exclMatch = instr.match(/['"]?([^'"]+?)['"]?\s*(?:은|는)?\s*(?:메뉴가\s*아니다|잡담|제외|불가)/);
+      if (exclMatch) {
+        excludedWords.push(exclMatch[1].trim());
+      }
+
+      // 2. Alias pattern: "X는 Y다", "X -> Y"
+      const aliasMatch = instr.match(/['"]?([^'"]+?)['"]?\s*(?:은|는|->|=>|=|으로)\s*['"]?([^'"]+?)['"]?(?:다|\.|$)/);
+      if (aliasMatch) {
+        const src = aliasMatch[1].trim();
+        const tgt = aliasMatch[2].replace(/(?:이다|다|로)$/, '').trim();
+        if (src && tgt && src !== tgt) {
+          instructionAliasMap[src] = tgt;
+        }
+      }
+    }
+  }
+
   const refinedUserOrders: UserOrder[] = parsedData.userOrders
     .filter(u => u.userName && u.items && u.items.length > 0)
     .map((u, uIdx) => {
@@ -206,6 +229,10 @@ function refineAiParsedResult(
       const items: ParsedOrderItem[] = u.items
         .filter(item => {
           const raw = item.rawText.trim();
+          const matched = item.matchedMenuName?.trim() || '';
+          if (excludedWords.some(w => w && (raw.includes(w) || matched.includes(w)))) {
+            return false;
+          }
           return (
             raw &&
             !isChatterLine(raw, memberMap) &&
@@ -215,12 +242,17 @@ function refineAiParsedResult(
         })
         .map((item, iIdx) => {
           let rawTrimmed = item.rawText.trim();
+          let matchedNameCandidate = item.matchedMenuName ? item.matchedMenuName.trim() : rawTrimmed;
 
-          if (learningRules.learnedAliasMap[rawTrimmed]) {
-            rawTrimmed = learningRules.learnedAliasMap[rawTrimmed];
+          if (instructionAliasMap[rawTrimmed]) {
+            matchedNameCandidate = instructionAliasMap[rawTrimmed];
+            rawTrimmed = instructionAliasMap[rawTrimmed];
+          } else if (instructionAliasMap[matchedNameCandidate]) {
+            matchedNameCandidate = instructionAliasMap[matchedNameCandidate];
+            rawTrimmed = instructionAliasMap[matchedNameCandidate];
           }
 
-          const cleanedText = cleanMenuText(rawTrimmed);
+          const cleanedText = cleanMenuText(matchedNameCandidate);
           const isBurgerMeal = /버거|치킨/i.test(cleanedText);
           const hasOptionSpecified = /단품|세트|단\b/i.test(item.rawText);
 
