@@ -6,6 +6,7 @@ import UnifiedOrderCard from '../components/UnifiedOrderCard';
 import OrderSummary from '../components/OrderSummary';
 import MenuManagementModal from '../components/MenuManagementModal';
 import ApiKeyModal from '../components/ApiKeyModal';
+import AiTrainingModal from '../components/AiTrainingModal';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { DEFAULT_RESTAURANTS, DepartmentName } from '../constants';
 import {
@@ -64,6 +65,7 @@ export default function Home() {
   const [unrecognizedUsers, setUnrecognizedUsers] = useState<string[]>([]);
   const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [isAiTrainingModalOpen, setIsAiTrainingModalOpen] = useState(false);
 
   useEffect(() => {
     fetchRestaurantsFromDb().then(data => {
@@ -210,6 +212,22 @@ export default function Home() {
     reMatchOrdersWithNewMenu(updatedMenuItems);
   };
 
+  const handleLearnAlias = async (alias: string, targetMenu: string) => {
+    try {
+      await fetch('/api/learning', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_alias',
+          alias,
+          targetMenu,
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to save AI learning alias:', e);
+    }
+  };
+
   const reMatchOrdersWithNewMenu = (newMenuItems: MenuItem[]) => {
     setOrderSession(prev => {
       const reMatchedOrders = prev.userOrders.map(u => ({
@@ -255,6 +273,7 @@ export default function Home() {
           onRestaurantChange={handleRestaurantChange}
           onOpenMenuManagement={() => setIsMenuModalOpen(true)}
           onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
+          onOpenAiTraining={() => setIsAiTrainingModalOpen(true)}
           hasApiKey={true}
         />
 
@@ -294,6 +313,7 @@ export default function Home() {
               onDismissUnregisteredItem={handleDismissUnregisteredItem}
               onAddMenuItemToDb={handleAddMenuItemToDb}
               onAddAliasToDb={handleAddAliasToDb}
+              onLearnAlias={handleLearnAlias}
               onSelectUserDepartment={handleSelectUserDepartment}
               onDismissUnrecognizedUser={handleDismissUnrecognizedUser}
               onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
@@ -323,6 +343,14 @@ export default function Home() {
         onClose={() => setIsApiKeyModalOpen(false)}
         apiKey={activeApiKey}
         onSaveApiKey={setApiKey}
+      />
+
+      {/* AI Training Center Modal */}
+      <AiTrainingModal
+        isOpen={isAiTrainingModalOpen}
+        onClose={() => setIsAiTrainingModalOpen(false)}
+        existingMenuItems={currentMenuItems}
+        apiKey={activeApiKey}
       />
     </div>
   );

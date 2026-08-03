@@ -9,6 +9,7 @@ interface HeaderProps {
   onRestaurantChange: (id: string) => void;
   onOpenMenuManagement: () => void;
   onOpenApiKeyModal: () => void;
+  onOpenAiTraining: () => void;
   hasApiKey: boolean;
 }
 
@@ -18,6 +19,7 @@ export default function Header({
   onRestaurantChange,
   onOpenMenuManagement,
   onOpenApiKeyModal,
+  onOpenAiTraining,
   hasApiKey,
 }: HeaderProps) {
   const [mounted, setMounted] = useState(false);
@@ -78,16 +80,25 @@ export default function Header({
           {/* AI Key Button */}
           <button
             onClick={onOpenApiKeyModal}
-            className={hasApiKey ? "button-ghost text-xs h-9" : "button-green text-xs h-9"}
+            className={hasApiKey ? "button-ghost text-xs h-9 cursor-pointer" : "button-green text-xs h-9 cursor-pointer"}
           >
             <span className="w-2 h-2 rounded-full bg-[var(--colors-green)] mr-1.5"></span>
             <span>{hasApiKey ? 'AI 연결됨' : 'AI 키 설정'}</span>
           </button>
 
+          {/* AI Training Center Button */}
+          <button
+            onClick={onOpenAiTraining}
+            className="button-magenta text-xs h-9 flex items-center gap-1.5 shadow-md hover:scale-105 transition-transform cursor-pointer"
+          >
+            <span>🧠</span>
+            <span className="font-extrabold">AI 학습 센터</span>
+          </button>
+
           {/* Menu Management Button */}
           <button
             onClick={onOpenMenuManagement}
-            className="button-ghost text-xs h-9"
+            className="button-ghost text-xs h-9 cursor-pointer"
           >
             ⚙️ 메뉴 관리
           </button>

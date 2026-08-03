@@ -78,3 +78,29 @@ export interface DepartmentGroupOrder {
   userOrders: UserOrder[];
   totalCount: number;
 }
+
+// Few-shot 학습 예시
+export interface FewShotExample {
+  id: string;
+  inputChat: string;
+  expectedOutput: string;
+  description: string;
+  createdAt: string;
+}
+
+// AI 학습 작업 이력
+export interface LearningLogItem {
+  id: string;
+  timestamp: string;
+  action: 'ALIAS_ADD' | 'ALIAS_DELETE' | 'FEW_SHOT_ADD' | 'FEW_SHOT_DELETE' | 'PROMPT_UPDATE';
+  detail: string;
+}
+
+// AI 자율 학습 데이터 스키마
+export interface LearningRules {
+  learnedAliasMap: Record<string, string>;
+  fewShotExamples?: FewShotExample[];
+  customPromptInstructions?: string[];
+  learningLogs?: LearningLogItem[];
+}
+

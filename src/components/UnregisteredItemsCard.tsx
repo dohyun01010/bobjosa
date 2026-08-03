@@ -8,6 +8,7 @@ interface UnregisteredItemsCardProps {
   existingMenuItems: MenuItem[];
   onAddToDb: (suggestedName: string, aliases: string[]) => void;
   onAddAsAlias: (menuId: string, alias: string) => void;
+  onLearnAlias?: (alias: string, targetMenu: string) => void;
   onDismiss: (id: string) => void;
 }
 
@@ -16,16 +17,30 @@ export default function UnregisteredItemsCard({
   existingMenuItems,
   onAddToDb,
   onAddAsAlias,
+  onLearnAlias,
   onDismiss,
 }: UnregisteredItemsCardProps) {
   if (unregisteredItems.length === 0) return null;
+
+  const handleLearnAndConnect = (menuId: string, item: UnregisteredItem) => {
+    const targetMenu = existingMenuItems.find(m => m.id === menuId);
+    if (!targetMenu) return;
+
+    onAddAsAlias(menuId, item.rawText);
+
+    if (onLearnAlias) {
+      onLearnAlias(item.rawText, targetMenu.name);
+    }
+
+    onDismiss(item.id);
+  };
 
   return (
     <div className="p-4 rounded-[var(--rounded-lg)] bg-gradient-to-r from-[var(--colors-surface-indigo)] to-[#2d1b4e] border-2 border-[var(--colors-magenta)] space-y-3 shadow-xl">
       <div className="flex items-center justify-between">
         <h4 className="text-xs font-display font-extrabold uppercase tracking-wider text-[var(--colors-magenta)] flex items-center gap-2">
           <span>✨</span>
-          <span>미등록 신규 메뉴 DB 자동 추천</span>
+          <span>미등록 메뉴 & AI 자율 학습</span>
         </h4>
         <span className="badge-magenta text-[10px]">NEW ITEM</span>
       </div>
@@ -43,7 +58,7 @@ export default function UnregisteredItemsCard({
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => onAddToDb(item.suggestedName, item.suggestedAliases)}
-                className="button-green text-[11px] h-7 py-1 px-3 font-bold"
+                className="button-green text-[11px] h-7 py-1 px-3 font-bold cursor-pointer"
               >
                 + 신규 메뉴 추가
               </button>
@@ -52,19 +67,18 @@ export default function UnregisteredItemsCard({
                 <select
                   onChange={e => {
                     if (e.target.value) {
-                      onAddAsAlias(e.target.value, item.rawText);
-                      onDismiss(item.id);
+                      handleLearnAndConnect(e.target.value, item);
                     }
                   }}
-                  className="discord-select text-[11px] h-7 py-0 px-2 bg-[var(--colors-surface-indigo)] border-[var(--border-primary)]"
+                  className="discord-select text-[11px] h-7 py-0 px-2 bg-[var(--colors-surface-indigo)] border-[var(--border-primary)] cursor-pointer"
                   defaultValue=""
                 >
                   <option value="" disabled>
-                    기존 메뉴 별칭 연결...
+                    🎓 AI 학습 & 기존 메뉴 연결...
                   </option>
                   {existingMenuItems.map(m => (
                     <option key={m.id} value={m.id}>
-                      {m.name}의 별칭으로 추가
+                      🎓 &quot;{item.rawText}&quot; ➔ &quot;{m.name}&quot; AI 학습
                     </option>
                   ))}
                 </select>
@@ -72,7 +86,7 @@ export default function UnregisteredItemsCard({
 
               <button
                 onClick={() => onDismiss(item.id)}
-                className="text-[var(--colors-muted)] hover:text-white text-[11px] font-bold px-1"
+                className="text-[var(--colors-muted)] hover:text-white text-[11px] font-bold px-1 cursor-pointer"
               >
                 무시
               </button>

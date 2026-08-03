@@ -1,16 +1,18 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { MenuItem, AiParseResult, ParsedOrderItem, UserOrder } from '../types';
+import { MenuItem, AiParseResult, ParsedOrderItem, UserOrder, LearningRules } from '../types';
 import { DepartmentName, MEMBER_DEPARTMENT_MAP } from '../constants';
 import { matchAllEntries } from './matcher';
 
 const DEFAULT_FIXED_GEMINI_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AQ.Ab8RN6L6TrLv1CcNx-2rK0oOVPnsubAtg06rFLhPJt-iv0WqvQ";
 
-export interface LearningRules {
-  learnedAliasMap: Record<string, string>;
-}
+export type { LearningRules };
 
 let cachedLearningRules: LearningRules = {
-  learnedAliasMap: {},
+  learnedAliasMap: {
+    '고국': '고기국수',
+  },
+  fewShotExamples: [],
+  customPromptInstructions: [],
 };
 
 export async function fetchLearningRules(): Promise<LearningRules> {
@@ -135,6 +137,18 @@ export async function parseChatWithAi(
     const genAI = new GoogleGenerativeAI(activeKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
+    const aliasInstructionSection = learningRules.learnedAliasMap && Object.keys(learningRules.learnedAliasMap).length > 0
+      ? `\n[CRITICAL LEARNED ALIAS MAPPINGS - HIGH PRIORITY]\nThe user has explicitly taught the following vocabulary mappings. You MUST substitute these aliases with their exact target menu names:\n${JSON.stringify(learningRules.learnedAliasMap, null, 2)}\n`
+      : '';
+
+    const fewShotSection = learningRules.fewShotExamples && learningRules.fewShotExamples.length > 0
+      ? `\n[LEARNED FEW-SHOT TRAINING EXAMPLES]\n${learningRules.fewShotExamples.map((ex, idx) => `Example ${idx + 1} (${ex.description}):\nInput: """${ex.inputChat}"""\nExpected Parsing Rule: ${ex.expectedOutput}`).join('\n\n')}\n`
+      : '';
+
+    const customInstructionsSection = learningRules.customPromptInstructions && learningRules.customPromptInstructions.length > 0
+      ? `\n[USER CUSTOM INSTRUCTIONS]\n${learningRules.customPromptInstructions.map(instr => `- ${instr}`).join('\n')}\n`
+      : '';
+
     const promptStep1 = `
 You are an expert KakaoTalk meal order aggregation parser.
 Parse the raw KakaoTalk chat logs into a clean structured JSON.
@@ -146,7 +160,7 @@ Parse the raw KakaoTalk chat logs into a clean structured JSON.
    - Format "치즈버거 치즈추가" as "치즈버거(치즈추가)".
 3. SPICY MODIFIERS:
    - ALL non-spicy variations ("안맵게", "엄청 안맵게", "매우 안맵게", "순한맛") MUST be standardized into "(안맵게)".
-
+${aliasInstructionSection}${customInstructionsSection}${fewShotSection}
 [Roster Reference - PEOPLE NAMES ARE NOT FOOD]
 ${JSON.stringify(activeMemberMap, null, 2)}
 
@@ -176,6 +190,7 @@ ${rawChatText}
 
   return fallbackSmartParse(rawChatText, menuItems, activeMemberMap, learningRules);
 }
+
 
 function refineAiParsedResult(
   parsedData: AiParseResult,

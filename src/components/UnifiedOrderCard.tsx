@@ -27,6 +27,7 @@ interface UnifiedOrderCardProps {
   onDismissUnregisteredItem: (id: string) => void;
   onAddMenuItemToDb: (suggestedName: string, aliases: string[]) => void;
   onAddAliasToDb: (menuId: string, alias: string) => void;
+  onLearnAlias?: (alias: string, targetMenu: string) => void;
   onSelectUserDepartment: (memberName: string, departmentName: DepartmentName) => void;
   onDismissUnrecognizedUser: (memberName: string) => void;
   onOpenApiKeyModal: () => void;
@@ -47,12 +48,14 @@ export default function UnifiedOrderCard({
   onDismissUnregisteredItem,
   onAddMenuItemToDb,
   onAddAliasToDb,
+  onLearnAlias,
   onSelectUserDepartment,
   onDismissUnrecognizedUser,
   onOpenApiKeyModal,
 }: UnifiedOrderCardProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+
 
   const formatCleanedRawChatText = (orders: UserOrder[]): string => {
     const blocks: string[] = [];
@@ -246,6 +249,7 @@ export default function UnifiedOrderCard({
           existingMenuItems={menuItems}
           onAddToDb={onAddMenuItemToDb}
           onAddAsAlias={onAddAliasToDb}
+          onLearnAlias={onLearnAlias}
           onDismiss={onDismissUnregisteredItem}
         />
       )}
